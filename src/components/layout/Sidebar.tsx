@@ -14,7 +14,7 @@ import {
   Database
 } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
-import { mockWorkers } from '../../mock/workersData';
+import { useWorkers } from '../../context/WorkerContext';
 import { mockMaterials } from '../../mock/materialsData';
 import { mockProductionJobs } from '../../mock/productionData';
 
@@ -30,11 +30,12 @@ interface NavItemConfig {
 
 export const Sidebar: React.FC = () => {
   const { currentPath, navigate, isSidebarCollapsed, toggleSidebar } = useNavigation();
+  const { workers } = useWorkers();
 
   // Compute live badges from mock dataset
   const lowStockCount = mockMaterials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length;
   const activeJobsCount = mockProductionJobs.filter(j => j.status === 'In Production').length;
-  const activeWorkersCount = mockWorkers.filter(w => w.status === 'Active').length;
+  const activeWorkersCount = workers.filter(w => w.status === 'Active').length;
 
   const navItems: NavItemConfig[] = [
     {

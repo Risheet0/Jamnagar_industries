@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { WorkerProvider } from './context/WorkerContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -119,9 +120,11 @@ const AppRouter: React.FC = () => {
 export function App() {
   return (
     <NavigationProvider>
-      <ToastProvider>
-        <AppRouter />
-      </ToastProvider>
+      <WorkerProvider>
+        <ToastProvider>
+          <AppRouter />
+        </ToastProvider>
+      </WorkerProvider>
     </NavigationProvider>
   );
 }

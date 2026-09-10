@@ -25,6 +25,8 @@ export interface Worker {
   department: WorkerDepartment;
   salaryType: SalaryType;
   salary: number;          // In INR
+  salaryNotes?: string;    // Custom rate notes (e.g. piece rate per component, overtime formula)
+  overtimeRate?: number;   // Overtime rate per hour in INR
   status: WorkerStatus;
   shift?: 'General' | 'Shift A (Morning)' | 'Shift B (Evening)' | 'Shift C (Night)';
   emergencyContact?: string;

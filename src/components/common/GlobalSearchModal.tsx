@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, User, Package, Box, Layers, ArrowRight, X } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
-import { mockWorkers } from '../../mock/workersData';
+import { useWorkers } from '../../context/WorkerContext';
 import { mockMaterials } from '../../mock/materialsData';
 import { mockProducts } from '../../mock/productsData';
 import { mockProductionJobs } from '../../mock/productionData';
 
 export const GlobalSearchModal: React.FC = () => {
   const { isGlobalSearchOpen, closeGlobalSearch, navigate } = useNavigation();
+  const { workers } = useWorkers();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -23,7 +24,7 @@ export const GlobalSearchModal: React.FC = () => {
     if (!query.trim()) return null;
     const q = query.toLowerCase();
 
-    const workers = mockWorkers.filter(
+    const matchedWorkers = workers.filter(
       w => w.name.toLowerCase().includes(q) || w.workerId.toLowerCase().includes(q) || w.skill.toLowerCase().includes(q)
     ).slice(0, 3);
 
@@ -39,9 +40,9 @@ export const GlobalSearchModal: React.FC = () => {
       j => j.jobNumber.toLowerCase().includes(q) || j.customer.toLowerCase().includes(q) || j.productName.toLowerCase().includes(q)
     ).slice(0, 3);
 
-    const totalCount = workers.length + materials.length + products.length + jobs.length;
-    return { workers, materials, products, jobs, totalCount };
-  }, [query]);
+    const totalCount = matchedWorkers.length + materials.length + products.length + jobs.length;
+    return { workers: matchedWorkers, materials, products, jobs, totalCount };
+  }, [query, workers]);
 
   const handleSelect = (route: string) => {
     navigate(route);

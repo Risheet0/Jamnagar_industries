@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
-import { mockWorkers } from '../mock/workersData';
+import { useWorkers } from '../context/WorkerContext';
 import { mockProductionJobs } from '../mock/productionData';
-import { ArrowLeft, User, IndianRupee, Layers } from 'lucide-react';
+import { ArrowLeft, User, IndianRupee, Layers, Edit3 } from 'lucide-react';
 
 interface WorkerDetailPageProps {
   id?: string;
@@ -13,14 +14,29 @@ interface WorkerDetailPageProps {
 
 export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const { currentPath, navigate } = useNavigation();
+  const { getWorker, workers } = useWorkers();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Extract ID from path if not passed as prop e.g. /workers/WRK-001
   const pathParts = currentPath.split('/');
   const workerId = id || pathParts[2] || 'WRK-001';
 
-  const worker = mockWorkers.find(w => w.id === workerId || w.workerId === workerId) || mockWorkers[0];
+  const worker = getWorker(workerId) || workers[0];
 
-  const assignedJobs = mockProductionJobs.filter(j => j.assignedWorkerId === worker.workerId || j.assignedWorker.includes(worker.name.split(' ')[0]));
+  if (!worker) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div>Worker not found.</div>
+        <Button variant="secondary" onClick={() => navigate('/workers')} style={{ marginTop: '12px' }}>
+          Back to Workers
+        </Button>
+      </div>
+    );
+  }
+
+  const assignedJobs = mockProductionJobs.filter(
+    j => j.assignedWorkerId === worker.workerId || j.assignedWorker.includes(worker.name.split(' ')[0])
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -33,13 +49,22 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
         ]}
         badge={<StatusBadge status={worker.status} />}
         actions={
-          <Button
-            variant="secondary"
-            icon={<ArrowLeft size={14} />}
-            onClick={() => navigate('/workers')}
-          >
-            Back to Workers
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              icon={<ArrowLeft size={14} />}
+              onClick={() => navigate('/workers')}
+            >
+              Back to Workers
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Edit3 size={14} />}
+              onClick={() => setIsEditModalOpen(true)}
+            >
+              Edit Details
+            </Button>
+          </>
         }
       />
 
@@ -51,6 +76,14 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
               <User size={16} style={{ color: 'var(--color-brand-primary)' }} />
               <span>Personal & Skill Details</span>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Edit3 size={13} />}
+              onClick={() => setIsEditModalOpen(true)}
+            >
+              Edit
+            </Button>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
             <div>
@@ -81,6 +114,12 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Residential Address</div>
               <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>{worker.address}</div>
             </div>
+            {worker.emergencyContact && (
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Emergency Contact</div>
+                <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>{worker.emergencyContact}</div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -93,6 +132,14 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
                 <IndianRupee size={16} style={{ color: 'var(--color-status-success-solid)' }} />
                 <span>Wage & Compensation Structure</span>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Edit3 size={13} />}
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                Change Wage
+              </Button>
             </div>
             <div className="card-body">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
@@ -164,6 +211,13 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
           </div>
         </div>
       </div>
+
+      {/* Edit Worker Modal */}
+      <WorkerEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        worker={worker}
+      />
     </div>
   );
 };

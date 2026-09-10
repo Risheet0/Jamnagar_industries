@@ -6,14 +6,24 @@ import { SelectField } from './SelectField';
 import { DatePicker } from './DatePicker';
 import { useNavigation } from '../../context/NavigationContext';
 import { useToast } from '../../context/ToastContext';
+import { useWorkers } from '../../context/WorkerContext';
 import { UserPlus, PackagePlus, Box, PlusCircle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 type QuickAddCategory = 'worker' | 'material' | 'product' | 'job' | 'inward' | 'outward';
 
 export const QuickAddModal: React.FC = () => {
   const { isQuickAddOpen, closeQuickAdd, quickAddType, navigate } = useNavigation();
+  const { addWorker } = useWorkers();
   const { showToast } = useToast();
   const [selectedTab, setSelectedTab] = useState<QuickAddCategory>('worker');
+
+  // Worker form state
+  const [workerName, setWorkerName] = useState('Jayesh Rathod');
+  const [workerMobile, setWorkerMobile] = useState('+91 98982 33441');
+  const [workerSkill, setWorkerSkill] = useState('CNC Operator');
+  const [workerDept, setWorkerDept] = useState('Machining');
+  const [workerSalaryType, setWorkerSalaryType] = useState('Monthly Fixed');
+  const [workerSalary, setWorkerSalary] = useState('28000');
 
   useEffect(() => {
     if (quickAddType && ['worker', 'material', 'product', 'job', 'inward', 'outward'].includes(quickAddType)) {
@@ -26,9 +36,22 @@ export const QuickAddModal: React.FC = () => {
   // Form submit handlers (mock local submission + toast + redirect)
   const handleWorkerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    addWorker({
+      workerId: `WRK-${String(Date.now()).slice(-3)}`,
+      name: workerName,
+      mobile: workerMobile,
+      address: 'GIDC Industrial Area, Vatva',
+      joiningDate: new Date().toISOString().split('T')[0],
+      skill: workerSkill as any,
+      department: workerDept as any,
+      salaryType: workerSalaryType as any,
+      salary: Number(workerSalary) || 0,
+      status: 'Active',
+      shift: 'Shift A (Morning)'
+    });
     showToast({
-      title: 'Worker Record Created (Mock)',
-      message: 'New Karigar profile initialized successfully in local dataset.',
+      title: 'Worker Record Created',
+      message: `${workerName} successfully added to factory database.`,
       type: 'success'
     });
     closeQuickAdd();
@@ -128,8 +151,20 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'worker' && (
           <form onSubmit={handleWorkerSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Karigar / Worker Name" required placeholder="e.g. Bharatbhai Mistry" defaultValue="Jayesh Rathod" />
-              <FormField label="Mobile Number" required placeholder="+91 98250 XXXXX" defaultValue="+91 98982 33441" />
+              <FormField
+                label="Karigar / Worker Name"
+                required
+                placeholder="e.g. Bharatbhai Mistry"
+                value={workerName}
+                onChange={e => setWorkerName(e.target.value)}
+              />
+              <FormField
+                label="Mobile Number"
+                required
+                placeholder="+91 98250 XXXXX"
+                value={workerMobile}
+                onChange={e => setWorkerMobile(e.target.value)}
+              />
               <SelectField
                 label="Primary Skill"
                 required
@@ -142,7 +177,8 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'Assembly Specialist', label: 'Assembly Specialist' },
                   { value: 'Helper / Trainee', label: 'Helper / Trainee' },
                 ]}
-                defaultValue="CNC Operator"
+                value={workerSkill}
+                onChange={e => setWorkerSkill(e.target.value)}
               />
               <SelectField
                 label="Department"
@@ -155,19 +191,36 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'Assembly & Packing', label: 'Assembly & Packing' },
                   { value: 'Store', label: 'Store' },
                 ]}
-                defaultValue="Machining"
+                value={workerDept}
+                onChange={e => setWorkerDept(e.target.value)}
               />
               <SelectField
                 label="Salary Type"
                 required
                 options={[
                   { value: 'Monthly Fixed', label: 'Monthly Fixed' },
-                  { value: 'Daily Wage', label: 'Daily Wage' },
-                  { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Karigar)' },
+                  { value: 'Daily Wage', label: 'Daily Wage (Per Day)' },
+                  { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Per Unit)' },
                 ]}
-                defaultValue="Monthly Fixed"
+                value={workerSalaryType}
+                onChange={e => setWorkerSalaryType(e.target.value)}
               />
-              <FormField label="Salary / Rate" prefix="₹" required placeholder="25000" defaultValue="28000" />
+              <FormField
+                label="Manual Salary / Wage Rate"
+                prefix="₹"
+                suffix={workerSalaryType === 'Daily Wage' ? '/ day' : workerSalaryType === 'Piece Rate (Karigar)' ? '/ piece' : '/ month'}
+                required
+                type="text"
+                inputMode="decimal"
+                placeholder="Type amount, e.g. 28000"
+                value={workerSalary}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (/^[0-9.,]*$/.test(val)) {
+                    setWorkerSalary(val);
+                  }
+                }}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>

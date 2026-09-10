@@ -5,24 +5,28 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { ConfirmationDialog } from '../components/common/ConfirmationDialog';
 import { Modal } from '../components/common/Modal';
+import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
+import { useWorkers } from '../context/WorkerContext';
 import { useToast } from '../context/ToastContext';
-import { mockWorkers } from '../mock/workersData';
 import { Worker, TableColumn } from '../types';
 import { UserPlus, Eye, Trash2, Edit3 } from 'lucide-react';
 
 export const WorkersPage: React.FC = () => {
-  const { navigate, openQuickAdd } = useNavigation();
+  const { openQuickAdd } = useNavigation();
+  const { workers, deleteWorker } = useWorkers();
   const { showToast } = useToast();
-  const [workersList, setWorkersList] = useState<Worker[]>(mockWorkers);
+
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  const [workerToEdit, setWorkerToEdit] = useState<Worker | null>(null);
   const [workerToDelete, setWorkerToDelete] = useState<Worker | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
 
   const handleDeleteWorker = () => {
     if (workerToDelete) {
-      setWorkersList(prev => prev.filter(w => w.id !== workerToDelete.id));
+      deleteWorker(workerToDelete.id);
       showToast({
         title: 'Worker Record Removed',
         message: `${workerToDelete.name} (${workerToDelete.workerId}) has been deleted from local state.`,
@@ -32,9 +36,14 @@ export const WorkersPage: React.FC = () => {
     }
   };
 
+  const handleEditClick = (worker: Worker) => {
+    setWorkerToEdit(worker);
+    setIsEditModalOpen(true);
+  };
+
   const filteredWorkers = skillFilter === 'ALL'
-    ? workersList
-    : workersList.filter(w => w.skill === skillFilter);
+    ? workers
+    : workers.filter(w => w.skill === skillFilter);
 
   const columns: TableColumn<Worker>[] = [
     {
@@ -119,24 +128,24 @@ export const WorkersPage: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
         <div className="card" style={{ padding: '12px 16px' }}>
           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Karigars</div>
-          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>{workersList.length}</div>
+          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>{workers.length}</div>
         </div>
         <div className="card" style={{ padding: '12px 16px' }}>
           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active On Floor</div>
           <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px', color: 'var(--color-status-success-solid)' }}>
-            {workersList.filter(w => w.status === 'Active').length}
+            {workers.filter(w => w.status === 'Active').length}
           </div>
         </div>
         <div className="card" style={{ padding: '12px 16px' }}>
           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>CNC / VMC Specialists</div>
           <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px', color: 'var(--color-brand-primary)' }}>
-            {workersList.filter(w => w.skill.includes('CNC') || w.skill.includes('VMC')).length}
+            {workers.filter(w => w.skill.includes('CNC') || w.skill.includes('VMC')).length}
           </div>
         </div>
         <div className="card" style={{ padding: '12px 16px' }}>
           <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Wage Commitment</div>
           <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>
-            ₹{workersList.reduce((sum, w) => sum + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary), 0).toLocaleString('en-IN')}
+            ₹{workers.reduce((sum, w) => sum + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary), 0).toLocaleString('en-IN')}
           </div>
         </div>
       </div>
@@ -159,7 +168,7 @@ export const WorkersPage: React.FC = () => {
               className="form-select"
               style={{ width: '180px', padding: '4px 8px', fontSize: '12px' }}
             >
-              <option value="ALL">All Skills ({workersList.length})</option>
+              <option value="ALL">All Skills ({workers.length})</option>
               <option value="CNC Operator">CNC Operator</option>
               <option value="VMC Specialist">VMC Specialist</option>
               <option value="Lathe Master">Lathe Master</option>
@@ -186,12 +195,13 @@ export const WorkersPage: React.FC = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/workers/${row.id}`);
+                handleEditClick(row);
               }}
               className="btn btn-ghost btn-sm btn-icon-only"
-              title="Open Worker Page"
+              title="Edit Employee Details"
+              style={{ backgroundColor: 'var(--color-brand-primary-light)' }}
             >
-              <Edit3 size={14} style={{ color: 'var(--color-text-secondary)' }} />
+              <Edit3 size={14} style={{ color: 'var(--color-brand-primary)' }} />
             </button>
             <button
               onClick={(e) => {
@@ -224,12 +234,13 @@ export const WorkersPage: React.FC = () => {
               </Button>
               <Button
                 variant="primary"
+                icon={<Edit3 size={14} />}
                 onClick={() => {
                   setIsDetailModalOpen(false);
-                  navigate(`/workers/${selectedWorker.id}`);
+                  handleEditClick(selectedWorker);
                 }}
               >
-                Open Full Record
+                Edit Details
               </Button>
             </>
           }
@@ -271,6 +282,16 @@ export const WorkersPage: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Edit Worker Modal */}
+      <WorkerEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setWorkerToEdit(null);
+        }}
+        worker={workerToEdit}
+      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmationDialog

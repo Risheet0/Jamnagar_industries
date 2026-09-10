@@ -21,18 +21,21 @@ import {
   ArrowDownLeft
 } from 'lucide-react';
 
+import { useWorkers } from '../context/WorkerContext';
+
 export const DashboardPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
+  const { workers } = useWorkers();
 
-  const totalWorkers = mockWorkers.length;
-  const activeWorkers = mockWorkers.filter(w => w.status === 'Active').length;
+  const totalWorkers = workers.length;
+  const activeWorkers = workers.filter(w => w.status === 'Active').length;
   const totalMaterials = mockMaterials.length;
   const lowStockMaterials = mockMaterials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock');
   const activeJobs = mockProductionJobs.filter(j => j.status === 'In Production');
   const delayedJobs = mockProductionJobs.filter(j => j.status === 'Delayed');
 
   // Compute total monthly wage payout mock
-  const totalMonthlyWage = mockWorkers.reduce((acc, w) => acc + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary), 0);
+  const totalMonthlyWage = workers.reduce((acc, w) => acc + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary), 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

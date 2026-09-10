@@ -8,27 +8,46 @@ import { useNavigation } from '../context/NavigationContext';
 import { useToast } from '../context/ToastContext';
 import { UserPlus, ArrowLeft, Save } from 'lucide-react';
 
+import { useWorkers } from '../context/WorkerContext';
+import { WorkerSkill, WorkerDepartment, SalaryType } from '../types';
+
 export const WorkerAddPage: React.FC = () => {
   const { navigate } = useNavigation();
+  const { addWorker } = useWorkers();
   const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
     address: '',
     joiningDate: new Date().toISOString().split('T')[0],
-    skill: 'CNC Operator',
-    department: 'Machining',
-    salaryType: 'Monthly Fixed',
+    skill: 'CNC Operator' as WorkerSkill,
+    department: 'Machining' as WorkerDepartment,
+    salaryType: 'Monthly Fixed' as SalaryType,
     salary: '28000',
-    shift: 'Shift A (Morning)',
+    shift: 'Shift A (Morning)' as any,
     emergencyContact: '',
     aadharNumber: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    addWorker({
+      workerId: `WRK-${String(Date.now()).slice(-3)}`,
+      name: formData.name,
+      mobile: formData.mobile,
+      address: formData.address,
+      joiningDate: formData.joiningDate,
+      skill: formData.skill,
+      department: formData.department,
+      salaryType: formData.salaryType,
+      salary: Number(formData.salary) || 0,
+      status: 'Active',
+      shift: formData.shift,
+      emergencyContact: formData.emergencyContact,
+      aadharNumber: formData.aadharNumber
+    });
     showToast({
-      title: 'Worker Record Created (Mock)',
+      title: 'Worker Record Created',
       message: `${formData.name} successfully added to factory database.`,
       type: 'success'
     });
@@ -97,7 +116,7 @@ export const WorkerAddPage: React.FC = () => {
                   { value: 'Helper / Trainee', label: 'Helper / Trainee' },
                 ]}
                 value={formData.skill}
-                onChange={e => setFormData({ ...formData, skill: e.target.value })}
+                onChange={e => setFormData({ ...formData, skill: e.target.value as WorkerSkill })}
               />
 
               <SelectField
@@ -112,30 +131,38 @@ export const WorkerAddPage: React.FC = () => {
                   { value: 'Store', label: 'Store' },
                 ]}
                 value={formData.department}
-                onChange={e => setFormData({ ...formData, department: e.target.value })}
+                onChange={e => setFormData({ ...formData, department: e.target.value as WorkerDepartment })}
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '16px' }}>
               <SelectField
                 label="Salary Type"
                 required
                 options={[
                   { value: 'Monthly Fixed', label: 'Monthly Fixed' },
-                  { value: 'Daily Wage', label: 'Daily Wage' },
-                  { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Karigar)' },
+                  { value: 'Daily Wage', label: 'Daily Wage (Per Day)' },
+                  { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Per Unit)' },
                 ]}
                 value={formData.salaryType}
-                onChange={e => setFormData({ ...formData, salaryType: e.target.value })}
+                onChange={e => setFormData({ ...formData, salaryType: e.target.value as SalaryType })}
               />
 
               <FormField
-                label="Salary / Rate (₹)"
+                label="Manual Rate / Wage Amount"
                 prefix="₹"
+                suffix={formData.salaryType === 'Daily Wage' ? '/ day' : formData.salaryType === 'Piece Rate (Karigar)' ? '/ piece' : '/ month'}
                 required
-                type="number"
+                type="text"
+                inputMode="decimal"
+                placeholder="Type amount, e.g. 28500 or 850"
                 value={formData.salary}
-                onChange={e => setFormData({ ...formData, salary: e.target.value })}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (/^[0-9.,]*$/.test(val)) {
+                    setFormData({ ...formData, salary: val });
+                  }
+                }}
               />
 
               <DatePicker
