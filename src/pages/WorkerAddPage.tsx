@@ -115,6 +115,7 @@ export const WorkerAddPage: React.FC = () => {
                   { value: 'Assembly Specialist', label: 'Assembly Specialist' },
                   { value: 'Helper / Trainee', label: 'Helper / Trainee' },
                 ]}
+                otherPlaceholder="Type custom skill / trade, e.g. Surface Grinder..."
                 value={formData.skill}
                 onChange={e => setFormData({ ...formData, skill: e.target.value as WorkerSkill })}
               />
@@ -130,6 +131,7 @@ export const WorkerAddPage: React.FC = () => {
                   { value: 'Assembly & Packing', label: 'Assembly & Packing' },
                   { value: 'Store', label: 'Store' },
                 ]}
+                otherPlaceholder="Type custom department, e.g. Anodizing Plant..."
                 value={formData.department}
                 onChange={e => setFormData({ ...formData, department: e.target.value as WorkerDepartment })}
               />

@@ -5,9 +5,9 @@
 
 import React from 'react';
 
-export type WorkerSkill = 'CNC Operator' | 'VMC Specialist' | 'Lathe Master' | 'Welder / Fabricator' | 'Tool & Die Maker' | 'Assembly Specialist' | 'Helper / Trainee';
+export type WorkerSkill = 'CNC Operator' | 'VMC Specialist' | 'Lathe Master' | 'Welder / Fabricator' | 'Tool & Die Maker' | 'Assembly Specialist' | 'Helper / Trainee' | string;
 
-export type WorkerDepartment = 'Machining' | 'Fabrication' | 'Quality & Inspection' | 'Tool Room' | 'Assembly & Packing' | 'Maintenance' | 'Store';
+export type WorkerDepartment = 'Machining' | 'Fabrication' | 'Quality & Inspection' | 'Tool Room' | 'Assembly & Packing' | 'Maintenance' | 'Store' | string;
 
 export type SalaryType = 'Monthly Fixed' | 'Daily Wage' | 'Piece Rate (Karigar)';
 

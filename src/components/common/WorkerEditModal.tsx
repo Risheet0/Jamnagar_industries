@@ -178,7 +178,8 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
                 { value: 'Assembly Specialist', label: 'Assembly Specialist' },
                 { value: 'Helper / Trainee', label: 'Helper / Trainee' },
               ]}
-              value={formData.skill || 'CNC Operator'}
+              otherPlaceholder="Type custom skill / trade, e.g. Surface Grinder..."
+              value={formData.skill ?? ''}
               onChange={e => setFormData({ ...formData, skill: e.target.value as WorkerSkill })}
             />
 
@@ -194,7 +195,8 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
                 { value: 'Store', label: 'Store' },
                 { value: 'Maintenance', label: 'Maintenance' },
               ]}
-              value={formData.department || 'Machining'}
+              otherPlaceholder="Type custom department, e.g. Anodizing Plant..."
+              value={formData.department ?? ''}
               onChange={e => setFormData({ ...formData, department: e.target.value as WorkerDepartment })}
             />
           </div>
@@ -312,7 +314,7 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
                 { value: 'Inactive', label: 'Inactive' },
                 { value: 'Terminated', label: 'Terminated' },
               ]}
-              value={formData.status || 'Active'}
+              value={formData.status ?? 'Active'}
               onChange={e => setFormData({ ...formData, status: e.target.value as WorkerStatus })}
             />
 
@@ -323,7 +325,7 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
               ]}
               allowOther={true}
               otherPlaceholder="Specify custom shift, e.g. Night Shift (8:00 PM - 8:00 AM)"
-              value={formData.shift || 'Shift A (8:00 AM - 8:00 PM)'}
+              value={formData.shift ?? 'Shift A (8:00 AM - 8:00 PM)'}
               onChange={e => setFormData({ ...formData, shift: e.target.value })}
             />
           </div>

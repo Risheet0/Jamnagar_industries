@@ -177,6 +177,7 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'Assembly Specialist', label: 'Assembly Specialist' },
                   { value: 'Helper / Trainee', label: 'Helper / Trainee' },
                 ]}
+                otherPlaceholder="Type custom skill, e.g. Surface Grinder..."
                 value={workerSkill}
                 onChange={e => setWorkerSkill(e.target.value)}
               />
@@ -191,6 +192,7 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'Assembly & Packing', label: 'Assembly & Packing' },
                   { value: 'Store', label: 'Store' },
                 ]}
+                otherPlaceholder="Type custom department, e.g. Anodizing..."
                 value={workerDept}
                 onChange={e => setWorkerDept(e.target.value)}
               />

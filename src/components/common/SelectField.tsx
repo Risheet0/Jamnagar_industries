@@ -37,32 +37,35 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   const selectId = id || `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const customInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if initial value is custom (not among predefined options)
-  const isValueInOptions = (val: any) => {
-    if (val === undefined || val === null || val === '') return true;
+  // Helper: check if a value matches one of the predefined options
+  const isPredefined = (val: any) => {
+    if (val === undefined || val === null || val === '') return false;
     return options.some(opt => String(opt.value) === String(val));
   };
 
   const initialVal = value !== undefined ? value : defaultValue;
-  const isInitialCustom = initialVal !== undefined && initialVal !== '' && !isValueInOptions(initialVal);
+  const isInitialOther = Boolean(initialVal && !isPredefined(initialVal)) || initialVal === '__OTHER__';
 
-  const [isOther, setIsOther] = useState<boolean>(isInitialCustom || initialVal === '__OTHER__');
-  const [customText, setCustomText] = useState<string>(isInitialCustom ? String(initialVal) : '');
+  const [isOther, setIsOther] = useState<boolean>(isInitialOther);
+  const [customText, setCustomText] = useState<string>(isInitialOther && initialVal !== '__OTHER__' ? String(initialVal) : '');
 
-  // Keep in sync when external value prop changes
+  // Keep state in sync with external value changes
   useEffect(() => {
     if (value !== undefined) {
-      const inOptions = isValueInOptions(value);
-      if (!inOptions && value !== '') {
+      if (value === '__OTHER__') {
+        setIsOther(true);
+      } else if (isPredefined(value)) {
+        setIsOther(false);
+      } else if (value !== '' && value !== null) {
+        // External value is custom (not in predefined options)
         setIsOther(true);
         setCustomText(String(value));
-      } else if (inOptions && value !== '__OTHER__') {
-        setIsOther(false);
       }
+      // Note: If value is '' and isOther is already true, we stay in isOther mode
     }
   }, [value, options]);
 
-  // Append Other option if allowOther is enabled and not already present
+  // Append Other option if allowOther is enabled and not already in options
   const selectOptions = React.useMemo(() => {
     if (!allowOther) return options;
     const hasOther = options.some(opt => opt.value === '__OTHER__' || String(opt.value).toLowerCase() === 'other');
@@ -70,21 +73,18 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     return [...options, { value: '__OTHER__', label: otherOptionLabel }];
   }, [options, allowOther, otherOptionLabel]);
 
-  // Determine current selected value for <select>
-  const currentSelectValue = isOther ? '__OTHER__' : (value !== undefined ? value : undefined);
-
+  // Handle dropdown selection change
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedVal = e.target.value;
     if (selectedVal === '__OTHER__') {
       setIsOther(true);
-      // Focus custom input after render
       setTimeout(() => {
         if (customInputRef.current) {
           customInputRef.current.focus();
         }
       }, 50);
 
-      // Trigger onChange with current custom text or empty
+      // Trigger onChange with current custom text
       if (onChange) {
         const syntheticEvent = {
           ...e,
@@ -98,12 +98,14 @@ export const SelectField: React.FC<SelectFieldProps> = ({
       }
     } else {
       setIsOther(false);
+      setCustomText('');
       if (onChange) {
         onChange(e);
       }
     }
   };
 
+  // Handle typing inside the custom "Other" text input
   const handleCustomTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     setCustomText(text);
@@ -123,6 +125,9 @@ export const SelectField: React.FC<SelectFieldProps> = ({
     }
   };
 
+  // Compute what the <select> element's value should be
+  const currentSelectValue = isOther ? '__OTHER__' : (value !== undefined ? value : undefined);
+
   return (
     <div className="form-group">
       <label htmlFor={selectId} className="form-label">
@@ -133,8 +138,8 @@ export const SelectField: React.FC<SelectFieldProps> = ({
       <select
         id={selectId}
         className={`form-select ${error ? 'form-input-error' : ''} ${className}`.trim()}
-        value={value !== undefined ? currentSelectValue : undefined}
-        defaultValue={defaultValue !== undefined && !value ? (isInitialCustom ? '__OTHER__' : defaultValue) : undefined}
+        value={currentSelectValue}
+        defaultValue={defaultValue !== undefined && !value ? (isInitialOther ? '__OTHER__' : defaultValue) : undefined}
         onChange={handleSelectChange}
         {...props}
       >
@@ -146,7 +151,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         ))}
       </select>
 
-      {/* Conditionally rendered custom text field when "Other" is selected */}
+      {/* Dynamic text field when "Other" is active */}
       {isOther && (
         <div style={{ marginTop: '8px' }}>
           <div style={{ position: 'relative' }}>
@@ -188,7 +193,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
               gap: '4px'
             }}
           >
-            <span>Custom value will be saved automatically for <strong>{label}</strong>.</span>
+            <span>Custom value for <strong>{label}</strong> is saved directly.</span>
           </div>
         </div>
       )}
