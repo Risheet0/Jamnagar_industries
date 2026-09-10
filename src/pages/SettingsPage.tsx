@@ -166,28 +166,20 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: '12px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '14px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-border-subtle)' }}>
               <div>
-                <div style={{ fontWeight: 600 }}>Shift A (Morning Shift)</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>08:00 AM to 04:30 PM (Lunch 01:00 PM - 01:30 PM)</div>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>Shift A (08:00 AM to 08:00 PM)</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Standard 12-Hour Factory Shift • Primary Production Run</div>
               </div>
               <span className="status-badge status-badge-active">Currently Active</span>
             </div>
 
-            <div style={{ padding: '12px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '14px 16px', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed var(--color-border-subtle)' }}>
               <div>
-                <div style={{ fontWeight: 600 }}>Shift B (Evening Shift)</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>04:30 PM to 01:00 AM (Dinner 08:30 PM - 09:00 PM)</div>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>Other / Custom Shift Hours</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Dynamic custom shifts can be typed directly via the "Other" option on any worker form.</div>
               </div>
-              <span className="status-badge status-badge-neutral">Scheduled</span>
-            </div>
-
-            <div style={{ padding: '12px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>Shift C (Night Shift)</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>01:00 AM to 08:00 AM (Continuous Machining)</div>
-              </div>
-              <span className="status-badge status-badge-neutral">Scheduled</span>
+              <span className="status-badge status-badge-neutral">Custom Configurable</span>
             </div>
           </div>
         </div>

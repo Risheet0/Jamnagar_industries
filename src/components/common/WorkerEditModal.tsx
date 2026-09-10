@@ -41,7 +41,7 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
         salaryNotes: worker.salaryNotes || '',
         overtimeRate: worker.overtimeRate || 0,
         status: worker.status,
-        shift: worker.shift || 'Shift A (Morning)',
+        shift: worker.shift || 'Shift A (8:00 AM - 8:00 PM)',
         joiningDate: worker.joiningDate,
         address: worker.address,
         emergencyContact: worker.emergencyContact || '',
@@ -319,13 +319,12 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
             <SelectField
               label="Shift Allocation"
               options={[
-                { value: 'General', label: 'General (09:00 - 17:30)' },
-                { value: 'Shift A (Morning)', label: 'Shift A (Morning 08:00 - 16:30)' },
-                { value: 'Shift B (Evening)', label: 'Shift B (Evening 16:30 - 01:00)' },
-                { value: 'Shift C (Night)', label: 'Shift C (Night 01:00 - 08:00)' },
+                { value: 'Shift A (8:00 AM - 8:00 PM)', label: 'Shift A (8:00 AM - 8:00 PM)' },
               ]}
-              value={formData.shift || 'Shift A (Morning)'}
-              onChange={e => setFormData({ ...formData, shift: e.target.value as any })}
+              allowOther={true}
+              otherPlaceholder="Specify custom shift, e.g. Night Shift (8:00 PM - 8:00 AM)"
+              value={formData.shift || 'Shift A (8:00 AM - 8:00 PM)'}
+              onChange={e => setFormData({ ...formData, shift: e.target.value })}
             />
           </div>
 

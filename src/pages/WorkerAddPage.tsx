@@ -24,7 +24,7 @@ export const WorkerAddPage: React.FC = () => {
     department: 'Machining' as WorkerDepartment,
     salaryType: 'Monthly Fixed' as SalaryType,
     salary: '28000',
-    shift: 'Shift A (Morning)' as any,
+    shift: 'Shift A (8:00 AM - 8:00 PM)',
     emergencyContact: '',
     aadharNumber: ''
   });
@@ -177,11 +177,10 @@ export const WorkerAddPage: React.FC = () => {
               <SelectField
                 label="Assigned Plant Shift"
                 options={[
-                  { value: 'General', label: 'General (09:00 - 17:30)' },
-                  { value: 'Shift A (Morning)', label: 'Shift A (Morning 08:00 - 16:30)' },
-                  { value: 'Shift B (Evening)', label: 'Shift B (Evening 16:30 - 01:00)' },
-                  { value: 'Shift C (Night)', label: 'Shift C (Night 01:00 - 08:00)' },
+                  { value: 'Shift A (8:00 AM - 8:00 PM)', label: 'Shift A (8:00 AM - 8:00 PM)' },
                 ]}
+                allowOther={true}
+                otherPlaceholder="Specify custom shift, e.g. Night Shift (8:00 PM - 8:00 AM)"
                 value={formData.shift}
                 onChange={e => setFormData({ ...formData, shift: e.target.value })}
               />

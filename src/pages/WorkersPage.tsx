@@ -261,7 +261,7 @@ export const WorkersPage: React.FC = () => {
               </div>
               <div style={{ padding: '8px 12px', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Assigned Shift</div>
-                <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedWorker.shift || 'Shift A (Morning)'}</div>
+                <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedWorker.shift || 'Shift A (8:00 AM - 8:00 PM)'}</div>
               </div>
               <div style={{ padding: '8px 12px', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Joining Date</div>

@@ -13,7 +13,7 @@ export const mockWorkers: Worker[] = [
     salaryType: 'Monthly Fixed',
     salary: 28500,
     status: 'Active',
-    shift: 'Shift A (Morning)',
+    shift: 'Shift A (8:00 AM - 8:00 PM)',
     emergencyContact: '+91 98251 99881',
     aadharNumber: 'XXXX-XXXX-4512'
   }

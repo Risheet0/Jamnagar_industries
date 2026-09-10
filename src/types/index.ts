@@ -28,7 +28,7 @@ export interface Worker {
   salaryNotes?: string;    // Custom rate notes (e.g. piece rate per component, overtime formula)
   overtimeRate?: number;   // Overtime rate per hour in INR
   status: WorkerStatus;
-  shift?: 'General' | 'Shift A (Morning)' | 'Shift B (Evening)' | 'Shift C (Night)';
+  shift?: string;
   emergencyContact?: string;
   aadharNumber?: string;
 }

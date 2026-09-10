@@ -104,7 +104,7 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
             </div>
             <div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Shift Assignment</div>
-              <div style={{ color: 'var(--color-text-primary)', marginTop: '2px' }}>{worker.shift || 'Shift A (Morning)'}</div>
+              <div style={{ color: 'var(--color-text-primary)', marginTop: '2px' }}>{worker.shift || 'Shift A (8:00 AM - 8:00 PM)'}</div>
             </div>
             <div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Joining Date</div>

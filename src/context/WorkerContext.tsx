@@ -12,7 +12,7 @@ interface WorkerContextType {
 
 const WorkerContext = createContext<WorkerContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'jamnagar_erp_workers_v1';
+const STORAGE_KEY = 'jamnagar_erp_workers_v2';
 
 export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [workers, setWorkers] = useState<Worker[]>(() => {

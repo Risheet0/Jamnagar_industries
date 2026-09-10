@@ -47,7 +47,7 @@ export const QuickAddModal: React.FC = () => {
       salaryType: workerSalaryType as any,
       salary: Number(workerSalary) || 0,
       status: 'Active',
-      shift: 'Shift A (Morning)'
+      shift: 'Shift A (8:00 AM - 8:00 PM)'
     });
     showToast({
       title: 'Worker Record Created',

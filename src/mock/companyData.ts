@@ -15,7 +15,7 @@ export const mockCompanyProfile: CompanyProfile = {
     avatarInitials: 'RP'
   },
   shiftTiming: {
-    currentShift: 'Shift A (Morning 08:00 - 16:30)',
+    currentShift: 'Shift A (08:00 AM - 08:00 PM)',
     plantStatus: 'Operational',
     operatorCount: 42
   }
