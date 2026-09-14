@@ -14,6 +14,7 @@ import { useMaterials } from '../context/MaterialsContext';
 import { useQuality } from '../context/QualityContext';
 import { useProducts } from '../context/ProductsContext';
 import { useProduction } from '../context/ProductionContext';
+import { usePayroll } from '../context/PayrollContext';
 import { mockCompanyProfile } from '../mock/companyData';
 import { downloadJsonFile } from '../utils/exportCsv';
 import {
@@ -43,8 +44,14 @@ export const SettingsPage: React.FC = () => {
   const { inspections } = useQuality();
   const { products } = useProducts();
   const { jobs } = useProduction();
+  const { shiftConfig, updateShiftConfig, adjustments } = usePayroll();
 
   const [activeTab, setActiveTab] = useState<'company' | 'shifts' | 'backup' | 'design-system'>('company');
+
+  // Shift config form state
+  const [shiftStartTime, setShiftStartTime] = useState(shiftConfig.standardStartTime);
+  const [shiftEndTime, setShiftEndTime] = useState(shiftConfig.standardEndTime);
+  const [otMultiplier, setOtMultiplier] = useState(shiftConfig.overtimeMultiplier.toString());
 
   // Interactive showcase state
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
@@ -72,7 +79,8 @@ export const SettingsPage: React.FC = () => {
     { key: 'stockMovements', storageKey: 'jamnagar_erp_stock_movements_v1', label: 'Stock Movement Ledger', count: stockMovements.length },
     { key: 'qualityInspections', storageKey: 'jamnagar_erp_quality_v1', label: 'Quality Control Inspections', count: inspections.length },
     { key: 'products', storageKey: 'jamnagar_erp_products_v1', label: 'Products Catalogue', count: products.length },
-    { key: 'productionJobs', storageKey: 'jamnagar_erp_production_v1', label: 'Production Job Cards', count: jobs.length }
+    { key: 'productionJobs', storageKey: 'jamnagar_erp_production_v1', label: 'Production Job Cards', count: jobs.length },
+    { key: 'salaryAdjustments', storageKey: 'jamnagar_erp_adjustments_v1', label: 'Salary Adjustments (Uppad/Jama)', count: adjustments.length }
   ];
 
   const handleSaveCompany = (e: React.FormEvent) => {
@@ -352,32 +360,103 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Shifts */}
+      {/* Tab 2: Shifts & Overtime Config */}
       {activeTab === 'shifts' && (
         <div className="card" style={{ maxWidth: '850px' }}>
           <div className="card-header">
             <div className="card-title">
               <Clock size={16} style={{ color: 'var(--color-brand-primary)' }} />
-              <span>Plant Shift Schedule</span>
+              <span>Plant Shift Schedule & Overtime Rates</span>
             </div>
+            <span className="status-badge status-badge-active">Standard Operating Window</span>
           </div>
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: '14px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-border-subtle)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>Shift A (08:00 AM to 08:00 PM)</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Standard 12-Hour Factory Shift • Primary Production Run</div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const mult = parseFloat(otMultiplier) || 1.5;
+              updateShiftConfig({
+                standardStartTime: shiftStartTime,
+                standardEndTime: shiftEndTime,
+                overtimeMultiplier: mult
+              });
+              showToast({
+                title: 'Shift Timings Updated',
+                message: `Standard factory shift updated to ${shiftStartTime} - ${shiftEndTime} with ${mult}x OT multiplier.`,
+                type: 'success'
+              });
+            }}
+          >
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ padding: '14px 16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>
+                    Primary Factory Shift: {shiftStartTime} to {shiftEndTime}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    Used as the baseline for attendance tracking, late arrival/early departure splits, and overtime rate computation.
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="mono-code" style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-brand-primary)' }}>
+                    {(() => {
+                      const [sH, sM] = shiftStartTime.split(':').map(Number);
+                      const [eH, eM] = shiftEndTime.split(':').map(Number);
+                      const diff = (eH + eM / 60) - (sH + sM / 60);
+                      return `${diff > 0 ? diff : diff + 24} Hours / Shift`;
+                    })()}
+                  </div>
+                </div>
               </div>
-              <span className="status-badge status-badge-active">Currently Active</span>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                <FormField
+                  label="Standard Shift Start Time (24h)"
+                  type="time"
+                  required
+                  value={shiftStartTime}
+                  onChange={e => setShiftStartTime(e.target.value)}
+                  helpText="Factory opening / gate check-in time"
+                />
+
+                <FormField
+                  label="Standard Shift End Time (24h)"
+                  type="time"
+                  required
+                  value={shiftEndTime}
+                  onChange={e => setShiftEndTime(e.target.value)}
+                  helpText="Factory closing / standard check-out"
+                />
+
+                <FormField
+                  label="Overtime Pay Multiplier"
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  max="3.0"
+                  required
+                  value={otMultiplier}
+                  onChange={e => setOtMultiplier(e.target.value)}
+                  helpText="Standard multiplier (default: 1.5x)"
+                />
+              </div>
+
+              <div style={{ padding: '12px 14px', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-border-subtle)', fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                <strong>Overtime Hourly Formula:</strong>
+                <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                  <li><strong>Monthly Fixed Workers:</strong> <code>(Monthly Salary / 26 / Scheduled Hours) × {otMultiplier || '1.5'}x</code></li>
+                  <li><strong>Daily Wage Workers:</strong> <code>(Daily Wage / Scheduled Hours) × {otMultiplier || '1.5'}x</code></li>
+                  <li><strong>Piece-Rate Karigars:</strong> Paid per manufactured unit; OT hours logged for audit purposes.</li>
+                </ul>
+              </div>
             </div>
 
-            <div style={{ padding: '14px 16px', backgroundColor: '#ffffff', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed var(--color-border-subtle)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-primary)' }}>Other / Custom Shift Hours</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Dynamic custom shifts can be typed directly via the "Other" option on any worker form.</div>
-              </div>
-              <span className="status-badge status-badge-neutral">Custom Configurable</span>
+            <div className="card-footer">
+              <Button variant="primary" icon={<Save size={14} />} type="submit">
+                Save Shift Configuration
+              </Button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

@@ -39,9 +39,26 @@ export interface AttendanceRecord {
   workerId: string;
   date: string;              // YYYY-MM-DD
   status: AttendanceStatus;
-  checkInTime?: string;      // e.g. "08:15 AM" — only relevant for Present/Half Day
-  checkOutTime?: string;     // e.g. "05:30 PM"
+  checkInTime?: string;      // "HH:mm" (24-hr) e.g. "08:15" — only relevant for Present/Half Day
+  checkOutTime?: string;     // "HH:mm" (24-hr) e.g. "20:30"
   notes?: string;            // e.g. "Casual Leave", "Left at 1 PM"
+}
+
+export interface ShiftConfig {
+  standardStartTime: string;   // "08:00" (24-hr HH:mm)
+  standardEndTime: string;     // "20:00"
+  overtimeMultiplier: number;  // default 1.5
+}
+
+export type AdjustmentType = 'Uppad' | 'Jama';
+
+export interface SalaryAdjustment {
+  id: string;             // ADJ-0001
+  workerId: string;
+  date: string;           // YYYY-MM-DD
+  type: AdjustmentType;
+  amount: number;         // always positive
+  reason?: string;        // e.g. "Advance for medical", "Festival bonus"
 }
 
 export type MaterialType = 'Brass Bar / Rod' | 'Stainless Steel' | 'Mild Steel' | 'Aluminum Alloy' | 'Cutting Tool' | 'Consumable / Oil' | 'Fastener / Hardware';

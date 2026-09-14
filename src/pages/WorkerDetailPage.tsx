@@ -7,7 +7,12 @@ import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
 import { useProduction } from '../context/ProductionContext';
+import { usePayroll } from '../context/PayrollContext';
 import { useToast } from '../context/ToastContext';
+import { getHourlyOvertimeRate } from '../utils/payroll';
+import { Modal } from '../components/common/Modal';
+import { FormField } from '../components/common/FormField';
+import { SelectField } from '../components/common/SelectField';
 import {
   ArrowLeft,
   User,
@@ -18,7 +23,10 @@ import {
   UserX,
   CalendarCheck,
   CalendarDays,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Trash2,
+  Receipt
 } from 'lucide-react';
 
 interface WorkerDetailPageProps {
@@ -34,8 +42,17 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
     getMonthSummary
   } = useAttendance();
   const { jobs } = useProduction();
+  const { adjustments, addAdjustment, deleteAdjustment, shiftConfig } = usePayroll();
   const { showToast } = useToast();
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddAdjModalOpen, setIsAddAdjModalOpen] = useState(false);
+
+  // New adjustment form state
+  const [adjType, setAdjType] = useState<'Uppad' | 'Jama'>('Uppad');
+  const [adjAmount, setAdjAmount] = useState('');
+  const [adjDate, setAdjDate] = useState(getTodayDateString());
+  const [adjReason, setAdjReason] = useState('');
 
   // Extract ID from path if not passed as prop e.g. /workers/WRK-001
   const pathParts = currentPath.split('/');
@@ -274,24 +291,154 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
               </Button>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Salary Structure</div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>{worker.salaryType}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '2px' }}>{worker.salaryType}</div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Agreed Rate / Base</div>
-                  <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-brand-primary)', marginTop: '2px' }}>
+                  <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-brand-primary)', marginTop: '2px' }}>
                     ₹{worker.salary.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>OT Hourly Rate</div>
+                  <div className="tabular-nums" style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
+                    {worker.salaryType === 'Piece Rate (Karigar)' ? (
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 400 }}>Piece-rate output</span>
+                    ) : (
+                      `₹${getHourlyOvertimeRate(worker, shiftConfig).toFixed(1)}/hr`
+                    )}
+                  </div>
+                </div>
+                <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Payment Cycle</div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, marginTop: '2px' }}>Monthly 1st-7th</div>
+                  <div style={{ fontSize: '13px', fontWeight: 500, marginTop: '2px' }}>Monthly 1st-7th</div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Uppad / Jama Adjustments Ledger Card */}
+          {(() => {
+            const workerAdjustments = adjustments.filter(
+              a => a.workerId === worker.workerId || a.workerId === worker.id
+            );
+            const totalUppad = workerAdjustments.filter(a => a.type === 'Uppad').reduce((s, a) => s + a.amount, 0);
+            const totalJama = workerAdjustments.filter(a => a.type === 'Jama').reduce((s, a) => s + a.amount, 0);
+
+            return (
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <Receipt size={16} style={{ color: 'var(--color-brand-primary)' }} />
+                    <span>Salary Adjustments Ledger (Uppad / Jama)</span>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus size={13} />}
+                    onClick={() => {
+                      setAdjType('Uppad');
+                      setAdjAmount('');
+                      setAdjDate(getTodayDateString());
+                      setAdjReason('');
+                      setIsAddAdjModalOpen(true);
+                    }}
+                  >
+                    Add Adjustment
+                  </Button>
+                </div>
+
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Totals Summary */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-status-danger-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-status-danger-border)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--color-status-danger-text)', fontWeight: 600, textTransform: 'uppercase' }}>Total Uppad (Deductions)</div>
+                      <div className="tabular-nums" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-status-danger-solid)', marginTop: '2px' }}>
+                        -₹{totalUppad.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-status-success-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-status-success-border)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--color-status-success-text)', fontWeight: 600, textTransform: 'uppercase' }}>Total Jama (Credits)</div>
+                      <div className="tabular-nums" style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-status-success-solid)', marginTop: '2px' }}>
+                        +₹{totalJama.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Net Adjustment Impact</div>
+                      <div className="tabular-nums" style={{ fontSize: '16px', fontWeight: 700, color: totalJama >= totalUppad ? 'var(--color-status-success-solid)' : 'var(--color-status-danger-solid)', marginTop: '2px' }}>
+                        {totalJama >= totalUppad ? `+₹${(totalJama - totalUppad).toLocaleString('en-IN')}` : `-₹${(totalUppad - totalJama).toLocaleString('en-IN')}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Adjustments Table */}
+                  {workerAdjustments.length > 0 ? (
+                    <div style={{ overflowX: 'auto', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border-default)' }}>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Date</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Type</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'right', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Amount</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Reason / Description</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'center', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {workerAdjustments.map((adj) => (
+                            <tr key={adj.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                              <td style={{ padding: '6px 12px' }}><span className="mono-code" style={{ fontSize: '11px' }}>{adj.date}</span></td>
+                              <td style={{ padding: '6px 12px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: adj.type === 'Uppad' ? 'var(--color-status-danger-bg)' : 'var(--color-status-success-bg)',
+                                    color: adj.type === 'Uppad' ? 'var(--color-status-danger-text)' : 'var(--color-status-success-text)',
+                                    border: `1px solid ${adj.type === 'Uppad' ? 'var(--color-status-danger-border)' : 'var(--color-status-success-border)'}`
+                                  }}
+                                >
+                                  {adj.type}
+                                </span>
+                              </td>
+                              <td style={{ padding: '6px 12px', textAlign: 'right', fontWeight: 700, color: adj.type === 'Uppad' ? 'var(--color-status-danger-solid)' : 'var(--color-status-success-solid)' }} className="tabular-nums">
+                                {adj.type === 'Uppad' ? '-' : '+'}₹{adj.amount.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '6px 12px', color: 'var(--color-text-secondary)' }}>
+                                {adj.reason || '—'}
+                              </td>
+                              <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    deleteAdjustment(adj.id);
+                                    showToast({ title: 'Adjustment Deleted', message: `Removed ₹${adj.amount} ${adj.type} record.`, type: 'info' });
+                                  }}
+                                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-status-danger-solid)', padding: '2px' }}
+                                  title="Delete Adjustment"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                      No advances (Uppad) or bonus credits (Jama) recorded for this worker.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Assigned Production Jobs */}
           <div className="card">
@@ -350,6 +497,79 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
         onClose={() => setIsEditModalOpen(false)}
         worker={worker}
       />
+
+      {/* Add Adjustment Modal */}
+      <Modal
+        isOpen={isAddAdjModalOpen}
+        onClose={() => setIsAddAdjModalOpen(false)}
+        title={`Add Salary Adjustment — ${worker.name}`}
+        subtitle={`Record Uppad (advance deduction) or Jama (bonus / reimbursement credit)`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setIsAddAdjModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const amt = parseFloat(adjAmount);
+                if (!amt || amt <= 0) {
+                  showToast({ title: 'Invalid Amount', message: 'Please enter a valid positive adjustment amount.', type: 'warning' });
+                  return;
+                }
+                addAdjustment(worker.workerId || worker.id, adjDate, adjType, amt, adjReason || undefined);
+                showToast({
+                  title: `${adjType} Recorded`,
+                  message: `Added ₹${amt.toLocaleString('en-IN')} ${adjType} entry for ${worker.name}.`,
+                  type: 'success'
+                });
+                setIsAddAdjModalOpen(false);
+              }}
+            >
+              Save Adjustment
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <SelectField
+              label="Adjustment Type"
+              required
+              value={adjType}
+              onChange={e => setAdjType(e.target.value as 'Uppad' | 'Jama')}
+              options={[
+                { value: 'Uppad', label: 'Uppad (Advance / Deduction -)' },
+                { value: 'Jama', label: 'Jama (Bonus / Credit +)' },
+              ]}
+            />
+            <FormField
+              label="Adjustment Amount (₹)"
+              type="number"
+              prefix="₹"
+              placeholder="1000"
+              required
+              value={adjAmount}
+              onChange={e => setAdjAmount(e.target.value)}
+            />
+          </div>
+
+          <FormField
+            label="Adjustment Date"
+            type="date"
+            required
+            value={adjDate}
+            onChange={e => setAdjDate(e.target.value)}
+          />
+
+          <FormField
+            label="Reason / Description"
+            placeholder="e.g. Medical emergency advance, Diwali bonus, Fine deduction"
+            value={adjReason}
+            onChange={e => setAdjReason(e.target.value)}
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

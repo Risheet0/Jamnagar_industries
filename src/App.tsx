@@ -6,6 +6,7 @@ import { MaterialsProvider } from './context/MaterialsContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { ProductionProvider } from './context/ProductionContext';
 import { QualityProvider } from './context/QualityContext';
+import { PayrollProvider } from './context/PayrollContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -32,6 +33,7 @@ import { ProductionJobAddPage } from './pages/ProductionJobAddPage';
 import { ProductionJobDetailPage } from './pages/ProductionJobDetailPage';
 import { QualityPage } from './pages/QualityPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { PayrollReportPage } from './pages/PayrollReportPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const AppRouter: React.FC = () => {
@@ -121,7 +123,10 @@ const AppRouter: React.FC = () => {
       return <QualityPage />;
     }
 
-    // 8. Reports
+    // 8. Reports & Payroll routes
+    if (currentPath === '/reports/payroll' || currentPath === '/payroll') {
+      return <PayrollReportPage />;
+    }
     if (currentPath === '/reports') {
       return <ReportsPage />;
     }
@@ -147,9 +152,11 @@ export function App() {
             <ProductsProvider>
               <ProductionProvider>
                 <QualityProvider>
-                  <ToastProvider>
-                    <AppRouter />
-                  </ToastProvider>
+                  <PayrollProvider>
+                    <ToastProvider>
+                      <AppRouter />
+                    </ToastProvider>
+                  </PayrollProvider>
                 </QualityProvider>
               </ProductionProvider>
             </ProductsProvider>

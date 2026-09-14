@@ -7,6 +7,7 @@ import { useWorkers } from '../context/WorkerContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { useQuality } from '../context/QualityContext';
 import { useProduction } from '../context/ProductionContext';
+import { useNavigation } from '../context/NavigationContext';
 import { exportToCsv } from '../utils/exportCsv';
 import {
   BarChart3,
@@ -16,10 +17,12 @@ import {
   Boxes,
   Clock,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  Calculator
 } from 'lucide-react';
 
 export const ReportsPage: React.FC = () => {
+  const { navigate } = useNavigation();
   const { workers } = useWorkers();
   const { materials, stockMovements } = useMaterials();
   const { inspections } = useQuality();
@@ -271,6 +274,15 @@ export const ReportsPage: React.FC = () => {
         breadcrumbs={[
           { label: 'Reports' }
         ]}
+        actions={
+          <Button
+            variant="primary"
+            icon={<Calculator size={14} />}
+            onClick={() => navigate('/reports/payroll')}
+          >
+            Payroll & Overtime Engine
+          </Button>
+        }
       />
 
       {/* Date Range Filter Bar */}
@@ -432,14 +444,24 @@ export const ReportsPage: React.FC = () => {
             <HardHat size={16} style={{ color: 'var(--color-brand-primary)' }} />
             <span>2. Karigar & Worker Wage Payout Sheet</span>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Download size={13} />}
-            onClick={handleExportWageCsv}
-          >
-            Export CSV
-          </Button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Calculator size={13} />}
+              onClick={() => navigate('/reports/payroll')}
+            >
+              Full Payroll & Uppad/Jama
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download size={13} />}
+              onClick={handleExportWageCsv}
+            >
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
