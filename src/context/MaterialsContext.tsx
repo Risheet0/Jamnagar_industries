@@ -17,6 +17,7 @@ interface OutwardMeta {
   date: string;
   reason: string;
   notes?: string;
+  allowDeficit?: boolean;
 }
 
 interface MaterialsContextType {
@@ -188,7 +189,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const target = materials.find(m => m.id === materialId || m.materialCode === materialId);
     if (!target) return false;
 
-    if (qty > target.currentStock) {
+    if (qty > target.currentStock && !meta.allowDeficit) {
       return false; // exceeds current stock
     }
 

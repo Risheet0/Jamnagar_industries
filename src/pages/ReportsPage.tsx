@@ -6,7 +6,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { useWorkers } from '../context/WorkerContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { useQuality } from '../context/QualityContext';
-import { mockProductionJobs } from '../mock/productionData';
+import { useProduction } from '../context/ProductionContext';
 import { exportToCsv } from '../utils/exportCsv';
 import {
   BarChart3,
@@ -23,6 +23,7 @@ export const ReportsPage: React.FC = () => {
   const { workers } = useWorkers();
   const { materials, stockMovements } = useMaterials();
   const { inspections } = useQuality();
+  const { jobs } = useProduction();
 
   const todayStr = new Date().toISOString().split('T')[0];
   const firstDayOfMonthStr = `${todayStr.slice(0, 7)}-01`;
@@ -39,8 +40,8 @@ export const ReportsPage: React.FC = () => {
 
   // 1. Production Jobs in range
   const filteredJobs = useMemo(() => {
-    return mockProductionJobs.filter(j => isDateInRange(j.date) || isDateInRange(j.dueDate));
-  }, [startDate, endDate]);
+    return jobs.filter(j => isDateInRange(j.date) || isDateInRange(j.dueDate));
+  }, [jobs, startDate, endDate]);
 
   const totalRequiredPieces = filteredJobs.reduce((acc, j) => acc + (j.requiredQuantity || 0), 0);
   const totalProducedPieces = filteredJobs.reduce((acc, j) => acc + (j.producedQuantity || 0), 0);
@@ -50,8 +51,8 @@ export const ReportsPage: React.FC = () => {
   const workerPayoutData = useMemo(() => {
     return workers.map(w => {
       // Find jobs assigned to this worker
-      const assignedJobs = mockProductionJobs.filter(
-        j => j.assignedWorkerId === w.id || j.assignedWorker === w.name
+      const assignedJobs = jobs.filter(
+        j => j.assignedWorkerId === w.id || j.assignedWorkerId === w.workerId || (j.assignedWorker && j.assignedWorker.includes(w.name))
       );
       const totalPiecesProduced = assignedJobs.reduce((acc, j) => acc + j.producedQuantity, 0);
 

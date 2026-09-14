@@ -5,17 +5,18 @@ import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
-import { mockProductionJobs } from '../mock/productionData';
+import { useProduction } from '../context/ProductionContext';
 import { ProductionJob, TableColumn } from '../types';
 import { Factory, PlusCircle, Eye, Layers, CheckCircle2 } from 'lucide-react';
 
 export const ProductionPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
+  const { jobs } = useProduction();
 
-  const totalRequired = mockProductionJobs.reduce((sum, j) => sum + j.requiredQuantity, 0);
-  const totalProduced = mockProductionJobs.reduce((sum, j) => sum + j.producedQuantity, 0);
-  const totalRejected = mockProductionJobs.reduce((sum, j) => sum + j.rejectedQuantity, 0);
-  const activeJobs = mockProductionJobs.filter(j => j.status === 'In Production');
+  const totalRequired = jobs.reduce((sum, j) => sum + j.requiredQuantity, 0);
+  const totalProduced = jobs.reduce((sum, j) => sum + j.producedQuantity, 0);
+  const totalRejected = jobs.reduce((sum, j) => sum + j.rejectedQuantity, 0);
+  const activeJobs = jobs.filter(j => j.status === 'In Production');
 
   const columns: TableColumn<ProductionJob>[] = [
     {
@@ -152,7 +153,7 @@ export const ProductionPage: React.FC = () => {
 
       {/* Main Jobs Table */}
       <DataTable
-        data={mockProductionJobs}
+        data={jobs}
         columns={columns}
         searchPlaceholder="Search job by #, customer, product, operator, machine..."
         onRowClick={(row) => navigate(`/production/jobs/${row.id}`)}

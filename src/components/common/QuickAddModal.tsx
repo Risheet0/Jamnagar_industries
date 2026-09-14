@@ -8,25 +8,59 @@ import { useNavigation } from '../../context/NavigationContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkers } from '../../context/WorkerContext';
 import { useMaterials } from '../../context/MaterialsContext';
+import { useProducts } from '../../context/ProductsContext';
+import { useProduction } from '../../context/ProductionContext';
 import { UserPlus, PackagePlus, Box, PlusCircle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 type QuickAddCategory = 'worker' | 'material' | 'product' | 'job' | 'inward' | 'outward';
 
 export const QuickAddModal: React.FC = () => {
   const { isQuickAddOpen, closeQuickAdd, quickAddType, navigate } = useNavigation();
-  const { addWorker } = useWorkers();
+  const { workers, addWorker } = useWorkers();
   const { showToast } = useToast();
-  const { materials, recordInward, recordOutward } = useMaterials();
+  const { materials, addMaterial, recordInward, recordOutward } = useMaterials();
+  const { products, addProduct } = useProducts();
+  const { addJob } = useProduction();
   const [selectedTab, setSelectedTab] = useState<QuickAddCategory>('worker');
 
+  // Material form state
+  const [matCode, setMatCode] = useState('MAT-BRS-HEX-22');
+  const [matName, setMatName] = useState('Brass Hex Rod CW614N 22mm');
+  const [matType, setMatType] = useState('Brass Bar / Rod');
+  const [matGrade, setMatGrade] = useState('IS 319 Gr 1');
+  const [matOpeningStock, setMatOpeningStock] = useState('500');
+  const [matMinStock, setMatMinStock] = useState('200');
+  const [matUnitPrice, setMatUnitPrice] = useState('570');
+  const [matSupplier, setMatSupplier] = useState('Jamnagar Brass Syndicate');
+
+  // Product form state
+  const [prodCode, setProdCode] = useState('PRD-BRS-ADPT-09');
+  const [prodName, setProdName] = useState('3/8" Brass Female Adapter');
+  const [prodDwgNo, setProdDwgNo] = useState('DWG-2026-FA-09.pdf');
+  const [prodDwgRev, setProdDwgRev] = useState('Rev 1.0');
+  const [prodMatCode, setProdMatCode] = useState('MAT-001');
+  const [prodWeight, setProdWeight] = useState('94');
+  const [prodCycleTime, setProdCycleTime] = useState('35');
+  const [prodUnitPrice, setProdUnitPrice] = useState('68');
+
+  // Job form state
+  const [jobNum, setJobNum] = useState(`JOB-2026-${String(Date.now()).slice(-3)}`);
+  const [jobCustomer, setJobCustomer] = useState('Adani Gas Pipelines Unit');
+  const [jobProdCode, setJobProdCode] = useState(products[0]?.productCode || 'PRD-BRS-FIT-01');
+  const [jobQty, setJobQty] = useState('1500');
+  const [jobWorkerId, setJobWorkerId] = useState(workers[0]?.id || 'WRK-001');
+  const [jobMachine, setJobMachine] = useState('CNC Lathe 01 (Doosan Lynx)');
+  const [jobDueDate, setJobDueDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
+  const [jobPriority, setJobPriority] = useState<'Normal' | 'High' | 'Critical'>('High');
+
   // Inward & Outward form states
-  const [inwardMatId, setInwardMatId] = useState('MAT-001');
+  const [inwardMatId, setInwardMatId] = useState(materials[0]?.id || 'MAT-001');
   const [inwardQty, setInwardQty] = useState('850');
   const [inwardSupplier, setInwardSupplier] = useState('Jamnagar Brass Syndicate');
   const [inwardInvoice, setInwardInvoice] = useState('INV-JB-9921');
   const [inwardHeat, setInwardHeat] = useState('HEAT-CW614-2026-90');
 
-  const [outwardMatId, setOutwardMatId] = useState('MAT-001');
+  const [outwardMatId, setOutwardMatId] = useState(materials[0]?.id || 'MAT-001');
   const [outwardQty, setOutwardQty] = useState('150');
   const [outwardIssuedTo, setOutwardIssuedTo] = useState('Rajeshbhai - CNC Lathe 01');
 
@@ -46,14 +80,14 @@ export const QuickAddModal: React.FC = () => {
     }
   }, [quickAddType, isQuickAddOpen]);
 
-  // Form submit handlers (mock local submission + toast + redirect)
+  // Form submit handlers
   const handleWorkerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addWorker({
       workerId: `WRK-${String(Date.now()).slice(-3)}`,
       name: workerName,
       mobile: workerMobile,
-      address: 'GIDC Industrial Area, Vatva',
+      address: 'GIDC Industrial Area, Jamnagar',
       joiningDate: new Date().toISOString().split('T')[0],
       skill: workerSkill as any,
       department: workerDept as any,
@@ -73,9 +107,26 @@ export const QuickAddModal: React.FC = () => {
 
   const handleMaterialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const created = addMaterial({
+      materialCode: matCode.trim() || `MAT-${String(Date.now()).slice(-3)}`,
+      materialName: matName,
+      type: matType as any,
+      grade: matGrade,
+      size: 'Dia 22mm x 3000mm',
+      unit: 'kg',
+      openingStock: Number(matOpeningStock) || 0,
+      currentStock: Number(matOpeningStock) || 0,
+      minimumStock: Number(matMinStock) || 0,
+      reorderQuantity: 300,
+      unitPrice: Number(matUnitPrice) || 0,
+      supplier: matSupplier,
+      locationRack: 'Rack A-01, Raw Store',
+      status: 'In Stock'
+    });
+
     showToast({
-      title: 'Material Registered (Mock)',
-      message: 'Raw material stock item created in inventory master.',
+      title: 'Material Registered',
+      message: `${created.materialCode} added to inventory master.`,
       type: 'success'
     });
     closeQuickAdd();
@@ -84,9 +135,26 @@ export const QuickAddModal: React.FC = () => {
 
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedMat = materials.find(m => m.materialCode === prodMatCode || m.id === prodMatCode);
+    const created = addProduct({
+      productCode: prodCode.trim() || `PRD-${String(Date.now()).slice(-3)}`,
+      productName: prodName,
+      drawing: prodDwgNo,
+      drawingRevision: prodDwgRev,
+      materialCode: selectedMat?.materialCode || prodMatCode || 'MAT-001',
+      material: selectedMat?.materialName || 'Brass Hex Bar CW614N 19mm',
+      weight: Number(prodWeight) || 94,
+      weightUnit: 'g',
+      unit: 'pieces',
+      targetCycleTimeSec: Number(prodCycleTime) || 35,
+      unitPrice: Number(prodUnitPrice) || 68,
+      status: 'Active Production',
+      category: 'Fittings'
+    });
+
     showToast({
-      title: 'Product Added (Mock)',
-      message: 'New manufactured component registered in production catalogue.',
+      title: 'Product Added',
+      message: `${created.productCode} registered in production catalogue.`,
       type: 'success'
     });
     closeQuickAdd();
@@ -95,11 +163,61 @@ export const QuickAddModal: React.FC = () => {
 
   const handleJobSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast({
-      title: 'Production Job Card Issued (Mock)',
-      message: 'Job scheduled on shop floor machine.',
-      type: 'success'
+    const selectedProd = products.find(p => p.productCode === jobProdCode || p.id === jobProdCode);
+    const selectedWorker = workers.find(w => w.id === jobWorkerId || w.workerId === jobWorkerId);
+    const qty = Number(jobQty) || 1000;
+
+    // Cross-module BOM deduction
+    let stockAlert = false;
+    if (selectedProd) {
+      const mat = materials.find(m => m.materialCode === selectedProd.materialCode || m.id === selectedProd.materialCode);
+      if (mat) {
+        const estimatedKg = Math.round(((qty * (selectedProd.weight || 100)) / 1000) * 100) / 100;
+        if (mat.currentStock < estimatedKg) {
+          stockAlert = true;
+        }
+        recordOutward(mat.id, estimatedKg, {
+          jobId: jobNum,
+          reason: 'Production Use',
+          issuedTo: selectedWorker ? selectedWorker.name : 'Shop Floor',
+          date: new Date().toISOString().split('T')[0],
+          allowDeficit: true
+        });
+      }
+    }
+
+    const created = addJob({
+      jobNumber: jobNum.trim() || `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`,
+      customer: jobCustomer,
+      productCode: selectedProd ? selectedProd.productCode : jobProdCode,
+      productName: selectedProd ? selectedProd.productName : 'Standard Brass Component',
+      requiredQuantity: qty,
+      producedQuantity: 0,
+      rejectedQuantity: 0,
+      assignedWorkerId: selectedWorker ? selectedWorker.id : (workers[0]?.id || 'WRK-001'),
+      assignedWorker: selectedWorker ? selectedWorker.name : 'Assigned Karigar',
+      machine: jobMachine,
+      date: new Date().toISOString().split('T')[0],
+      dueDate: jobDueDate,
+      status: 'Pending',
+      priority: jobPriority,
+      notes: 'Issued via Quick Add drawer'
     });
+
+    if (stockAlert) {
+      showToast({
+        title: 'Job Issued (Stock Insufficient)',
+        message: `Job ${created.jobNumber} created. Raw material stock went negative — Reorder required!`,
+        type: 'warning'
+      });
+    } else {
+      showToast({
+        title: 'Production Job Card Issued',
+        message: `Job ${created.jobNumber} scheduled and raw material BOM reserved.`,
+        type: 'success'
+      });
+    }
+
     closeQuickAdd();
     navigate('/production/jobs');
   };
@@ -269,8 +387,20 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'material' && (
           <form onSubmit={handleMaterialSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Material Code" required placeholder="MAT-BRS-005" defaultValue="MAT-BRS-HEX-22" />
-              <FormField label="Material Name" required placeholder="e.g. Brass Hex Rod 22mm" defaultValue="Brass Hex Rod CW614N 22mm" />
+              <FormField
+                label="Material Code"
+                required
+                placeholder="MAT-BRS-005"
+                value={matCode}
+                onChange={e => setMatCode(e.target.value)}
+              />
+              <FormField
+                label="Material Name"
+                required
+                placeholder="e.g. Brass Hex Rod 22mm"
+                value={matName}
+                onChange={e => setMatName(e.target.value)}
+              />
               <SelectField
                 label="Material Type"
                 required
@@ -282,13 +412,40 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'Cutting Tool', label: 'Cutting Tool' },
                   { value: 'Consumable / Oil', label: 'Consumable / Oil' },
                 ]}
-                defaultValue="Brass Bar / Rod"
+                value={matType}
+                onChange={e => setMatType(e.target.value)}
               />
-              <FormField label="Grade / Spec" placeholder="e.g. IS 319 Gr I" defaultValue="IS 319 Gr 1" />
-              <FormField label="Opening Stock" suffix="kg" required defaultValue="500" />
-              <FormField label="Minimum Alert Stock" suffix="kg" required defaultValue="200" />
-              <FormField label="Unit Price" prefix="₹" defaultValue="570" />
-              <FormField label="Supplier Name" defaultValue="Jamnagar Brass Syndicate" />
+              <FormField
+                label="Grade / Spec"
+                placeholder="e.g. IS 319 Gr I"
+                value={matGrade}
+                onChange={e => setMatGrade(e.target.value)}
+              />
+              <FormField
+                label="Opening Stock"
+                suffix="kg"
+                required
+                value={matOpeningStock}
+                onChange={e => setMatOpeningStock(e.target.value)}
+              />
+              <FormField
+                label="Minimum Alert Stock"
+                suffix="kg"
+                required
+                value={matMinStock}
+                onChange={e => setMatMinStock(e.target.value)}
+              />
+              <FormField
+                label="Unit Price"
+                prefix="₹"
+                value={matUnitPrice}
+                onChange={e => setMatUnitPrice(e.target.value)}
+              />
+              <FormField
+                label="Supplier Name"
+                value={matSupplier}
+                onChange={e => setMatSupplier(e.target.value)}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
@@ -301,14 +458,55 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'product' && (
           <form onSubmit={handleProductSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Product Code" required defaultValue="PRD-BRS-ADPT-09" />
-              <FormField label="Product Name" required defaultValue={'3/8" Brass Female Adapter'} />
-              <FormField label="Drawing Number" defaultValue="DWG-2026-FA-09.pdf" />
-              <FormField label="Drawing Revision" defaultValue="Rev 1.0" />
-              <FormField label="Raw Material Used" defaultValue="Brass Hex Bar 19mm" />
-              <FormField label="Unit Weight" suffix="g" defaultValue="94" />
-              <FormField label="Target Cycle Time" suffix="sec" defaultValue="35" />
-              <FormField label="Unit Price" prefix="₹" defaultValue="68" />
+              <FormField
+                label="Product Code"
+                required
+                value={prodCode}
+                onChange={e => setProdCode(e.target.value)}
+              />
+              <FormField
+                label="Product Name"
+                required
+                value={prodName}
+                onChange={e => setProdName(e.target.value)}
+              />
+              <FormField
+                label="Drawing Number"
+                value={prodDwgNo}
+                onChange={e => setProdDwgNo(e.target.value)}
+              />
+              <FormField
+                label="Drawing Revision"
+                value={prodDwgRev}
+                onChange={e => setProdDwgRev(e.target.value)}
+              />
+              <SelectField
+                label="Raw Material"
+                options={materials.map(m => ({
+                  value: m.materialCode,
+                  label: `${m.materialCode} (${m.materialName.slice(0, 20)}...)`
+                }))}
+                value={prodMatCode}
+                onChange={e => setProdMatCode(e.target.value)}
+              />
+              <FormField
+                label="Unit Weight"
+                suffix="g"
+                value={prodWeight}
+                onChange={e => setProdWeight(e.target.value)}
+              />
+              <FormField
+                label="Target Cycle Time"
+                suffix="sec"
+                value={prodCycleTime}
+                onChange={e => setProdCycleTime(e.target.value)}
+              />
+              <FormField
+                label="Unit Price"
+                prefix="₹"
+                value={prodUnitPrice}
+                onChange={e => setProdUnitPrice(e.target.value)}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
@@ -321,31 +519,56 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'job' && (
           <form onSubmit={handleJobSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Job Card Number" required defaultValue="JOB-2026-006" />
-              <FormField label="Customer / Order Ref" required defaultValue="Adani Gas Pipelines Unit" />
+              <FormField
+                label="Job Card Number"
+                required
+                value={jobNum}
+                onChange={e => setJobNum(e.target.value)}
+              />
+              <FormField
+                label="Customer / Order Ref"
+                required
+                value={jobCustomer}
+                onChange={e => setJobCustomer(e.target.value)}
+              />
               <SelectField
                 label="Product"
                 required
-                options={[
-                  { value: 'PRD-001', label: 'PRD-001: 1/2" Male Hex Brass Flare Fitting' },
-                  { value: 'PRD-002', label: 'PRD-002: 3/4" Full Bore Brass Valve Stem' },
-                  { value: 'PRD-003', label: 'PRD-003: Precision SS 304 Pump Shaft' },
-                ]}
-                defaultValue="PRD-001"
+                options={products.map(p => ({
+                  value: p.productCode,
+                  label: `${p.productCode}: ${p.productName.slice(0, 24)}...`
+                }))}
+                value={jobProdCode}
+                onChange={e => setJobProdCode(e.target.value)}
               />
-              <FormField label="Required Batch Quantity" suffix="pcs" required defaultValue="1500" />
+              <FormField
+                label="Required Batch Quantity"
+                suffix="pcs"
+                required
+                value={jobQty}
+                onChange={e => setJobQty(e.target.value)}
+              />
               <SelectField
                 label="Assigned Worker / Karigar"
                 required
-                options={[
-                  { value: 'WRK-001', label: 'Rajeshbhai Panchal (CNC Operator)' },
-                  { value: 'WRK-003', label: 'Hitesh Prajapati (Lathe Master)' },
-                  { value: 'WRK-004', label: 'Dharmesh Vaghela (VMC Specialist)' },
-                ]}
-                defaultValue="WRK-001"
+                options={workers.map(w => ({
+                  value: w.id,
+                  label: `${w.name} (${w.skill})`
+                }))}
+                value={jobWorkerId}
+                onChange={e => setJobWorkerId(e.target.value)}
               />
-              <FormField label="Target Machine / Station" defaultValue="CNC Lathe 01 (Doosan Lynx)" />
-              <DatePicker label="Target Due Date" required defaultValue="2026-09-18" />
+              <FormField
+                label="Target Machine / Station"
+                value={jobMachine}
+                onChange={e => setJobMachine(e.target.value)}
+              />
+              <DatePicker
+                label="Target Due Date"
+                required
+                value={jobDueDate}
+                onChange={e => setJobDueDate(e.target.value)}
+              />
               <SelectField
                 label="Job Priority"
                 options={[
@@ -353,7 +576,8 @@ export const QuickAddModal: React.FC = () => {
                   { value: 'High', label: 'High' },
                   { value: 'Critical', label: 'Critical' },
                 ]}
-                defaultValue="High"
+                value={jobPriority}
+                onChange={e => setJobPriority(e.target.value as any)}
               />
             </div>
 

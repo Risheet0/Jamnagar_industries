@@ -3,8 +3,9 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
-import { mockProducts } from '../mock/productsData';
-import { ArrowLeft, Cpu, FileText, Clock, IndianRupee, Layers } from 'lucide-react';
+import { useProducts } from '../context/ProductsContext';
+import { useProduction } from '../context/ProductionContext';
+import { ArrowLeft, Cpu, FileText, Clock, IndianRupee, Layers, Factory } from 'lucide-react';
 
 interface ProductDetailPageProps {
   id?: string;
@@ -12,11 +13,28 @@ interface ProductDetailPageProps {
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ id }) => {
   const { currentPath, navigate, openQuickAdd } = useNavigation();
+  const { getProduct, products } = useProducts();
+  const { jobs } = useProduction();
 
   const pathParts = currentPath.split('/');
-  const productId = id || pathParts[2] || 'PRD-001';
+  const productId = id || pathParts[2] || (products[0]?.id ?? 'PRD-001');
 
-  const product = mockProducts.find(p => p.id === productId || p.productCode === productId) || mockProducts[0];
+  const product = getProduct(productId) || products[0];
+
+  if (!product) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Button variant="secondary" icon={<ArrowLeft size={14} />} onClick={() => navigate('/products')}>
+          Back to Products
+        </Button>
+        <p style={{ marginTop: '20px' }}>Product record not found.</p>
+      </div>
+    );
+  }
+
+  const linkedJobs = jobs.filter(
+    j => j.productCode === product.productCode || j.productName === product.productName
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -71,8 +89,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ id }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Material Grade</div>
-              <div style={{ marginTop: '2px' }}>{product.material}</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Raw Material (BOM)</div>
+              <div style={{ marginTop: '2px', fontWeight: 500 }}>{product.material}</div>
+              {product.materialCode && (
+                <div className="mono-code" style={{ fontSize: '11px', marginTop: '2px' }}>{product.materialCode}</div>
+              )}
             </div>
             <div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Finished Unit Weight</div>
@@ -108,7 +129,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ id }) => {
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Target Output / Hour</div>
                   <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>
-                    {Math.round(3600 / product.targetCycleTimeSec)} pcs/hr
+                    {product.targetCycleTimeSec > 0 ? Math.round(3600 / product.targetCycleTimeSec) : 0} pcs/hr
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
@@ -116,6 +137,50 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ id }) => {
                   <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '4px' }}>{product.unit}</div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Linked Production Job Batches */}
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">
+                <Factory size={16} style={{ color: 'var(--color-brand-primary)' }} />
+                <span>Production Job Cards ({linkedJobs.length})</span>
+              </div>
+            </div>
+            <div className="card-body" style={{ padding: 0 }}>
+              {linkedJobs.length > 0 ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                      <th style={{ padding: '8px 14px', textAlign: 'left', fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Job #</th>
+                      <th style={{ padding: '8px 14px', textAlign: 'left', fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Customer</th>
+                      <th style={{ padding: '8px 14px', textAlign: 'right', fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Produced / Required</th>
+                      <th style={{ padding: '8px 14px', textAlign: 'center', fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linkedJobs.map(j => (
+                      <tr
+                        key={j.id}
+                        onClick={() => navigate(`/production/jobs/${j.id}`)}
+                        style={{ borderBottom: '1px solid var(--color-border-subtle)', cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <td style={{ padding: '8px 14px' }}><span className="mono-code">{j.jobNumber}</span></td>
+                        <td style={{ padding: '8px 14px', fontWeight: 500 }}>{j.customer}</td>
+                        <td style={{ padding: '8px 14px', textAlign: 'right' }} className="tabular-nums">{j.producedQuantity} / {j.requiredQuantity} pcs</td>
+                        <td style={{ padding: '8px 14px', textAlign: 'center' }}><StatusBadge status={j.status} size="sm" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                  No production jobs issued for this component yet.
+                </div>
+              )}
             </div>
           </div>
         </div>

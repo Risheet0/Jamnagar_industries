@@ -4,17 +4,18 @@ import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
-import { mockProductionJobs } from '../mock/productionData';
+import { useProduction } from '../context/ProductionContext';
 import { ProductionJob, TableColumn } from '../types';
 import { PlusCircle, ArrowLeft, Eye } from 'lucide-react';
 
 export const ProductionJobsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
+  const { jobs } = useProduction();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   const filteredJobs = statusFilter === 'ALL'
-    ? mockProductionJobs
-    : mockProductionJobs.filter(j => j.status === statusFilter);
+    ? jobs
+    : jobs.filter(j => j.status === statusFilter);
 
   const columns: TableColumn<ProductionJob>[] = [
     {
@@ -132,7 +133,7 @@ export const ProductionJobsPage: React.FC = () => {
               className="form-select"
               style={{ width: '160px', padding: '4px 8px', fontSize: '12px' }}
             >
-              <option value="ALL">All Statuses ({mockProductionJobs.length})</option>
+              <option value="ALL">All Statuses ({jobs.length})</option>
               <option value="In Production">In Production</option>
               <option value="Quality Check">Quality Check</option>
               <option value="Completed">Completed</option>

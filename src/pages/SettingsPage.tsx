@@ -12,9 +12,9 @@ import { useToast } from '../context/ToastContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { useQuality } from '../context/QualityContext';
+import { useProducts } from '../context/ProductsContext';
+import { useProduction } from '../context/ProductionContext';
 import { mockCompanyProfile } from '../mock/companyData';
-import { mockProducts } from '../mock/productsData';
-import { mockProductionJobs } from '../mock/productionData';
 import { downloadJsonFile } from '../utils/exportCsv';
 import {
   Building2,
@@ -41,6 +41,8 @@ export const SettingsPage: React.FC = () => {
   const { workers } = useWorkers();
   const { materials, stockMovements } = useMaterials();
   const { inspections } = useQuality();
+  const { products } = useProducts();
+  const { jobs } = useProduction();
 
   const [activeTab, setActiveTab] = useState<'company' | 'shifts' | 'backup' | 'design-system'>('company');
 
@@ -69,8 +71,8 @@ export const SettingsPage: React.FC = () => {
     { key: 'materials', storageKey: 'jamnagar_erp_materials_v1', label: 'Raw Materials Master', count: materials.length },
     { key: 'stockMovements', storageKey: 'jamnagar_erp_stock_movements_v1', label: 'Stock Movement Ledger', count: stockMovements.length },
     { key: 'qualityInspections', storageKey: 'jamnagar_erp_quality_v1', label: 'Quality Control Inspections', count: inspections.length },
-    { key: 'products', storageKey: 'jamnagar_erp_products_v1', label: 'Products Catalogue', count: mockProducts.length },
-    { key: 'productionJobs', storageKey: 'jamnagar_erp_production_jobs_v1', label: 'Production Job Cards', count: mockProductionJobs.length }
+    { key: 'products', storageKey: 'jamnagar_erp_products_v1', label: 'Products Catalogue', count: products.length },
+    { key: 'productionJobs', storageKey: 'jamnagar_erp_production_v1', label: 'Production Job Cards', count: jobs.length }
   ];
 
   const handleSaveCompany = (e: React.FormEvent) => {
@@ -95,8 +97,8 @@ export const SettingsPage: React.FC = () => {
         materials: materials,
         stockMovements: stockMovements,
         qualityInspections: inspections,
-        products: mockProducts,
-        productionJobs: mockProductionJobs
+        products: products,
+        productionJobs: jobs
       }
     };
 
@@ -104,7 +106,7 @@ export const SettingsPage: React.FC = () => {
 
     showToast({
       title: 'Backup Downloaded',
-      message: `Complete offline system state exported (${workers.length} workers, ${materials.length} materials, ${stockMovements.length} movements, ${inspections.length} QC inspections).`,
+      message: `Complete offline system state exported (${workers.length} workers, ${materials.length} materials, ${products.length} products, ${jobs.length} jobs, ${inspections.length} QC inspections).`,
       type: 'success'
     });
   };

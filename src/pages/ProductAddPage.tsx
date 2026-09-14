@@ -5,30 +5,86 @@ import { SelectField } from '../components/common/SelectField';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useToast } from '../context/ToastContext';
+import { useProducts } from '../context/ProductsContext';
+import { useMaterials } from '../context/MaterialsContext';
 import { Cpu, ArrowLeft, Save } from 'lucide-react';
 
 export const ProductAddPage: React.FC = () => {
   const { navigate } = useNavigation();
   const { showToast } = useToast();
+  const { addProduct } = useProducts();
+  const { materials } = useMaterials();
+
   const [formData, setFormData] = useState({
     productCode: '',
     productName: '',
     drawing: '',
     drawingRevision: 'Rev 1.0',
-    material: 'Brass Round Rod CW614N',
+    materialCode: materials[0]?.materialCode || 'MAT-BRS-ROD-25',
+    material: materials[0]?.materialName || 'Brass Round Rod CW614N',
     weight: '150',
+    weightUnit: 'g' as 'g' | 'kg',
+    unit: 'pieces' as 'pieces' | 'sets' | 'lots',
     unitPrice: '120',
     targetCycleTimeSec: '45',
-    category: 'Fittings'
+    category: 'Fittings' as any
   });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleMaterialChange = (selectedMatCode: string) => {
+    const mat = materials.find(m => m.materialCode === selectedMatCode || m.id === selectedMatCode);
+    if (mat) {
+      setFormData(prev => ({
+        ...prev,
+        materialCode: mat.materialCode,
+        material: mat.materialName
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        materialCode: selectedMatCode,
+        material: selectedMatCode
+      }));
+    }
+  };
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!formData.productCode.trim()) errs.productCode = 'Product code is required (e.g. PRD-BRS-VAL-09)';
+    if (!formData.productName.trim()) errs.productName = 'Component name is required';
+    if (!formData.weight || Number(formData.weight) <= 0) errs.weight = 'Weight must be > 0';
+    if (!formData.unitPrice || Number(formData.unitPrice) <= 0) errs.unitPrice = 'Selling price must be > 0';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
+
+    addProduct({
+      productCode: formData.productCode.trim(),
+      productName: formData.productName.trim(),
+      drawing: formData.drawing.trim() || `DWG-${formData.productCode.trim()}.pdf`,
+      drawingRevision: formData.drawingRevision.trim() || 'Rev 1.0',
+      material: formData.material.trim(),
+      materialCode: formData.materialCode.trim(),
+      weight: Number(formData.weight) || 100,
+      weightUnit: formData.weightUnit,
+      unit: formData.unit,
+      targetCycleTimeSec: Number(formData.targetCycleTimeSec) || 30,
+      unitPrice: Number(formData.unitPrice) || 0,
+      status: 'Active Production',
+      category: formData.category
+    });
+
     showToast({
-      title: 'Product Registered (Mock)',
-      message: `${formData.productName} added to product catalog.`,
+      title: 'Product Registered',
+      message: `${formData.productName} successfully added to product catalogue.`,
       type: 'success'
     });
+
     navigate('/products');
   };
 
@@ -69,6 +125,7 @@ export const ProductAddPage: React.FC = () => {
                 placeholder="e.g. PRD-BRS-VAL-09"
                 value={formData.productCode}
                 onChange={e => setFormData({ ...formData, productCode: e.target.value })}
+                error={errors.productCode}
               />
               <FormField
                 label="Product / Component Name"
@@ -76,6 +133,7 @@ export const ProductAddPage: React.FC = () => {
                 placeholder={'e.g. 1/2" Hex Brass Non-Return Valve Body'}
                 value={formData.productName}
                 onChange={e => setFormData({ ...formData, productName: e.target.value })}
+                error={errors.productName}
               />
             </div>
 
@@ -106,7 +164,7 @@ export const ProductAddPage: React.FC = () => {
                   { value: 'Custom Component', label: 'Custom Component' },
                 ]}
                 value={formData.category}
-                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                onChange={e => setFormData({ ...formData, category: e.target.value as any })}
               />
 
               <FormField
@@ -115,6 +173,7 @@ export const ProductAddPage: React.FC = () => {
                 type="number"
                 value={formData.weight}
                 onChange={e => setFormData({ ...formData, weight: e.target.value })}
+                error={errors.weight}
               />
 
               <FormField
@@ -126,24 +185,31 @@ export const ProductAddPage: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <FormField
-                label="Raw Material Requirement"
-                value={formData.material}
-                onChange={e => setFormData({ ...formData, material: e.target.value })}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
+              <SelectField
+                label="Raw Material Requirement (BOM)"
+                options={materials.map(m => ({
+                  value: m.materialCode,
+                  label: `${m.materialCode} - ${m.materialName}`
+                }))}
+                value={formData.materialCode}
+                onChange={e => handleMaterialChange(e.target.value)}
+                allowOther
+                otherPlaceholder="e.g. Brass Round Rod Dia 28mm"
               />
 
               <FormField
-                label="Finished Component Unit Price"
+                label="Component Selling Price"
                 prefix="₹"
                 type="number"
                 value={formData.unitPrice}
                 onChange={e => setFormData({ ...formData, unitPrice: e.target.value })}
+                error={errors.unitPrice}
               />
             </div>
           </div>
 
-          <div className="card-footer">
+          <div className="card-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <Button variant="secondary" onClick={() => navigate('/products')} type="button">
               Cancel
             </Button>

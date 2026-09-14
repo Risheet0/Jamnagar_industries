@@ -2,13 +2,16 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, User, Package, Box, Layers, ArrowRight, X } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useWorkers } from '../../context/WorkerContext';
-import { mockMaterials } from '../../mock/materialsData';
-import { mockProducts } from '../../mock/productsData';
-import { mockProductionJobs } from '../../mock/productionData';
+import { useMaterials } from '../../context/MaterialsContext';
+import { useProducts } from '../../context/ProductsContext';
+import { useProduction } from '../../context/ProductionContext';
 
 export const GlobalSearchModal: React.FC = () => {
   const { isGlobalSearchOpen, closeGlobalSearch, navigate } = useNavigation();
   const { workers } = useWorkers();
+  const { materials } = useMaterials();
+  const { products } = useProducts();
+  const { jobs } = useProduction();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -28,21 +31,21 @@ export const GlobalSearchModal: React.FC = () => {
       w => w.name.toLowerCase().includes(q) || w.workerId.toLowerCase().includes(q) || w.skill.toLowerCase().includes(q)
     ).slice(0, 3);
 
-    const materials = mockMaterials.filter(
+    const matchedMaterials = materials.filter(
       m => m.materialName.toLowerCase().includes(q) || m.materialCode.toLowerCase().includes(q) || m.grade.toLowerCase().includes(q)
     ).slice(0, 3);
 
-    const products = mockProducts.filter(
+    const matchedProducts = products.filter(
       p => p.productName.toLowerCase().includes(q) || p.productCode.toLowerCase().includes(q)
     ).slice(0, 3);
 
-    const jobs = mockProductionJobs.filter(
+    const matchedJobs = jobs.filter(
       j => j.jobNumber.toLowerCase().includes(q) || j.customer.toLowerCase().includes(q) || j.productName.toLowerCase().includes(q)
     ).slice(0, 3);
 
-    const totalCount = matchedWorkers.length + materials.length + products.length + jobs.length;
-    return { workers: matchedWorkers, materials, products, jobs, totalCount };
-  }, [query, workers]);
+    const totalCount = matchedWorkers.length + matchedMaterials.length + matchedProducts.length + matchedJobs.length;
+    return { workers: matchedWorkers, materials: matchedMaterials, products: matchedProducts, jobs: matchedJobs, totalCount };
+  }, [query, workers, materials, products, jobs]);
 
   const handleSelect = (route: string) => {
     navigate(route);

@@ -5,7 +5,7 @@ import { Button } from '../components/common/Button';
 import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
-import { mockProductionJobs } from '../mock/productionData';
+import { useProduction } from '../context/ProductionContext';
 import { ArrowLeft, User, IndianRupee, Layers, Edit3 } from 'lucide-react';
 
 interface WorkerDetailPageProps {
@@ -15,6 +15,7 @@ interface WorkerDetailPageProps {
 export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const { currentPath, navigate } = useNavigation();
   const { getWorker, workers } = useWorkers();
+  const { jobs } = useProduction();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Extract ID from path if not passed as prop e.g. /workers/WRK-001
@@ -34,8 +35,8 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
     );
   }
 
-  const assignedJobs = mockProductionJobs.filter(
-    j => j.assignedWorkerId === worker.workerId || j.assignedWorker.includes(worker.name.split(' ')[0])
+  const assignedJobs = jobs.filter(
+    j => j.assignedWorkerId === worker.workerId || j.assignedWorkerId === worker.id || (j.assignedWorker && j.assignedWorker.includes(worker.name.split(' ')[0]))
   );
 
   return (

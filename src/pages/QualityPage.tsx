@@ -9,8 +9,8 @@ import { SelectField } from '../components/common/SelectField';
 import { DatePicker } from '../components/common/DatePicker';
 import { ConfirmationDialog } from '../components/common/ConfirmationDialog';
 import { useQuality } from '../context/QualityContext';
+import { useProduction } from '../context/ProductionContext';
 import { useToast } from '../context/ToastContext';
-import { mockProductionJobs } from '../mock/productionData';
 import {
   QualityInspection,
   InspectionResult,
@@ -40,6 +40,7 @@ const DEFECT_OPTIONS: DefectType[] = [
 
 export const QualityPage: React.FC = () => {
   const { inspections, addInspection, deleteInspection } = useQuality();
+  const { jobs, updateJob } = useProduction();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'all' | 'pass' | 'fail' | 'first-piece'>('all');
@@ -50,9 +51,10 @@ export const QualityPage: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
 
   // New Inspection Form State
-  const [jobId, setJobId] = useState<string>(mockProductionJobs[0]?.jobNumber || 'JOB-2026-001');
-  const [productCode, setProductCode] = useState<string>(mockProductionJobs[0]?.productCode || 'PRD-BRS-FIT-01');
-  const [productName, setProductName] = useState<string>(mockProductionJobs[0]?.productName || '1/2" Male Hex Brass Flare Tube Fitting (BSPT)');
+  const defaultJob = jobs[0];
+  const [jobId, setJobId] = useState<string>(defaultJob?.jobNumber || 'JOB-2026-001');
+  const [productCode, setProductCode] = useState<string>(defaultJob?.productCode || 'PRD-BRS-FIT-01');
+  const [productName, setProductName] = useState<string>(defaultJob?.productName || '1/2" Male Hex Brass Flare Tube Fitting (BSPT)');
   const [inspectionType, setInspectionType] = useState<'First-Piece' | 'In-Process Sample' | 'Final'>('In-Process Sample');
   const [sampleSize, setSampleSize] = useState<string>('50');
   const [inspectedQty, setInspectedQty] = useState<string>('50');
@@ -107,7 +109,7 @@ export const QualityPage: React.FC = () => {
 
   const handleJobSelect = (selectedJobNum: string) => {
     setJobId(selectedJobNum);
-    const matchedJob = mockProductionJobs.find(j => j.jobNumber === selectedJobNum || j.id === selectedJobNum);
+    const matchedJob = jobs.find(j => j.jobNumber === selectedJobNum || j.id === selectedJobNum);
     if (matchedJob) {
       setProductCode(matchedJob.productCode);
       setProductName(matchedJob.productName);
@@ -123,9 +125,10 @@ export const QualityPage: React.FC = () => {
   };
 
   const resetForm = () => {
-    setJobId(mockProductionJobs[0]?.jobNumber || 'JOB-2026-001');
-    setProductCode(mockProductionJobs[0]?.productCode || 'PRD-BRS-FIT-01');
-    setProductName(mockProductionJobs[0]?.productName || '1/2" Male Hex Brass Flare Tube Fitting (BSPT)');
+    const currentDefaultJob = jobs[0];
+    setJobId(currentDefaultJob?.jobNumber || 'JOB-2026-001');
+    setProductCode(currentDefaultJob?.productCode || 'PRD-BRS-FIT-01');
+    setProductName(currentDefaultJob?.productName || '1/2" Male Hex Brass Flare Tube Fitting (BSPT)');
     setInspectionType('In-Process Sample');
     setSampleSize('50');
     setInspectedQty('50');
@@ -156,6 +159,8 @@ export const QualityPage: React.FC = () => {
     e.preventDefault();
     if (!validate()) return;
 
+    const rejQtyNum = Number(rejectedQty) || 0;
+
     addInspection({
       jobId: jobId.trim(),
       jobNumber: jobId.trim(),
@@ -165,7 +170,7 @@ export const QualityPage: React.FC = () => {
       sampleSize: Number(sampleSize) || Number(inspectedQty) || 1,
       inspectedQuantity: Number(inspectedQty),
       passedQuantity: Number(passedQty),
-      rejectedQuantity: Number(rejectedQty),
+      rejectedQuantity: rejQtyNum,
       defectTypes: selectedDefects,
       dimensionalNotes: dimensionalNotes.trim() || undefined,
       result,
@@ -173,6 +178,14 @@ export const QualityPage: React.FC = () => {
       date: inspectionDate,
       remarks: remarks.trim() || undefined
     });
+
+    // Cross-module reconciliation (Item 7c): QC is the source of truth for rejection counts
+    const matchedJob = jobs.find(j => j.jobNumber === jobId.trim() || j.id === jobId.trim());
+    if (matchedJob && rejQtyNum > 0 && matchedJob.rejectedQuantity !== rejQtyNum) {
+      updateJob(matchedJob.id, {
+        rejectedQuantity: rejQtyNum
+      });
+    }
 
     showToast({
       title: 'QC Inspection Logged',
@@ -465,11 +478,10 @@ export const QualityPage: React.FC = () => {
             <SelectField
               label="Job Card #"
               required
-              options={[
-                ...mockProductionJobs.map(j => ({ value: j.jobNumber, label: `${j.jobNumber} (${j.productName.slice(0, 24)}...)` })),
-                { value: 'JOB-2026-002', label: 'JOB-2026-002 (Flare Nut 3/4")' },
-                { value: 'JOB-2026-003', label: 'JOB-2026-003 (SS Bushing 304)' }
-              ]}
+              options={jobs.map(j => ({
+                value: j.jobNumber,
+                label: `${j.jobNumber} (${j.productName.slice(0, 24)}...)`
+              }))}
               value={jobId}
               onChange={e => handleJobSelect(e.target.value)}
               error={errors.jobId}

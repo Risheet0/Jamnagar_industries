@@ -4,12 +4,13 @@ import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
-import { mockProducts } from '../mock/productsData';
+import { useProducts } from '../context/ProductsContext';
 import { Product, TableColumn } from '../types';
 import { Plus, Eye, FileText } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
+  const { products } = useProducts();
 
   const columns: TableColumn<Product>[] = [
     {
@@ -97,7 +98,7 @@ export const ProductsPage: React.FC = () => {
       />
 
       <DataTable
-        data={mockProducts}
+        data={products}
         columns={columns}
         searchPlaceholder="Search product by code, name, drawing, material, category..."
         onRowClick={(row) => navigate(`/products/${row.id}`)}
