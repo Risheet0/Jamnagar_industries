@@ -132,6 +132,42 @@ export interface CompanyProfile {
   };
 }
 
+export interface StockMovement {
+  id: string;                 // e.g. MOV-0001
+  materialId: string;
+  materialCode: string;
+  type: 'Inward' | 'Outward';
+  quantity: number;
+  date: string;                // YYYY-MM-DD
+  reference?: string;          // invoice number, job ID, etc.
+  supplier?: string;           // for Inward
+  issuedTo?: string;           // for Outward — worker name or job card
+  heatNumber?: string;         // for Inward, brass/steel traceability
+  notes?: string;
+}
+
+export type InspectionResult = 'Pass' | 'Fail' | 'Pending';
+export type DefectType = 'Burr' | 'Thread Damage' | 'Undersize' | 'Oversize' | 'Surface Finish' | 'Other';
+
+export interface QualityInspection {
+  id: string;                  // QC-0001
+  jobId: string;                // linked Production Job ID
+  jobNumber: string;
+  productCode: string;
+  productName: string;
+  inspectionType: 'First-Piece' | 'In-Process Sample' | 'Final';
+  sampleSize: number;
+  inspectedQuantity: number;
+  passedQuantity: number;
+  rejectedQuantity: number;
+  defectTypes: DefectType[];
+  dimensionalNotes?: string;   // free text for now, e.g. "OD 24.98mm vs 25.00 ±0.02"
+  result: InspectionResult;
+  inspectedBy: string;         // worker name or QC inspector name
+  date: string;
+  remarks?: string;
+}
+
 export interface BreadcrumbItem {
   label: string;
   path?: string;
@@ -147,3 +183,4 @@ export type TableColumn<T> = {
   sortable?: boolean;
   className?: string;
 };
+

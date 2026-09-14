@@ -7,6 +7,7 @@ import { DatePicker } from './DatePicker';
 import { useNavigation } from '../../context/NavigationContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkers } from '../../context/WorkerContext';
+import { useMaterials } from '../../context/MaterialsContext';
 import { UserPlus, PackagePlus, Box, PlusCircle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 type QuickAddCategory = 'worker' | 'material' | 'product' | 'job' | 'inward' | 'outward';
@@ -15,7 +16,19 @@ export const QuickAddModal: React.FC = () => {
   const { isQuickAddOpen, closeQuickAdd, quickAddType, navigate } = useNavigation();
   const { addWorker } = useWorkers();
   const { showToast } = useToast();
+  const { materials, recordInward, recordOutward } = useMaterials();
   const [selectedTab, setSelectedTab] = useState<QuickAddCategory>('worker');
+
+  // Inward & Outward form states
+  const [inwardMatId, setInwardMatId] = useState('MAT-001');
+  const [inwardQty, setInwardQty] = useState('850');
+  const [inwardSupplier, setInwardSupplier] = useState('Jamnagar Brass Syndicate');
+  const [inwardInvoice, setInwardInvoice] = useState('INV-JB-9921');
+  const [inwardHeat, setInwardHeat] = useState('HEAT-CW614-2026-90');
+
+  const [outwardMatId, setOutwardMatId] = useState('MAT-001');
+  const [outwardQty, setOutwardQty] = useState('150');
+  const [outwardIssuedTo, setOutwardIssuedTo] = useState('Rajeshbhai - CNC Lathe 01');
 
   // Worker form state
   const [workerName, setWorkerName] = useState('Jayesh Rathod');
@@ -93,24 +106,45 @@ export const QuickAddModal: React.FC = () => {
 
   const handleInwardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const qty = Number(inwardQty) || 100;
+    recordInward(inwardMatId, qty, {
+      supplier: inwardSupplier,
+      invoiceNumber: inwardInvoice,
+      heatNumber: inwardHeat,
+      date: new Date().toISOString().split('T')[0]
+    });
     showToast({
-      title: 'Material Inward Recorded (Mock)',
-      message: 'Stock balance updated with inward challan.',
+      title: 'Material Inward Recorded',
+      message: `Stock balance updated with ${qty} units.`,
       type: 'success'
     });
     closeQuickAdd();
-    navigate('/materials/inward');
+    navigate('/materials');
   };
 
   const handleOutwardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const qty = Number(outwardQty) || 50;
+    const success = recordOutward(outwardMatId, qty, {
+      issuedTo: outwardIssuedTo,
+      reason: 'Production Use',
+      date: new Date().toISOString().split('T')[0]
+    });
+    if (!success) {
+      showToast({
+        title: 'Issue Failed',
+        message: 'Insufficient stock available to issue requested quantity.',
+        type: 'danger'
+      });
+      return;
+    }
     showToast({
-      title: 'Material Outward Issued (Mock)',
-      message: 'Raw material issued to machine operator.',
+      title: 'Material Outward Issued',
+      message: `Issued ${qty} units to ${outwardIssuedTo}.`,
       type: 'info'
     });
     closeQuickAdd();
-    navigate('/materials/outward');
+    navigate('/materials');
   };
 
   const categories = [
@@ -333,21 +367,40 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'inward' && (
           <form onSubmit={handleInwardSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Inward Challan / GRN No." required defaultValue="GRN-2026-09-44" />
-              <DatePicker label="Receipt Date" required defaultValue="2026-09-10" />
               <SelectField
                 label="Material"
                 required
-                options={[
-                  { value: 'MAT-001', label: 'MAT-001: Brass Round Rod CW614N 25mm' },
-                  { value: 'MAT-002', label: 'MAT-002: Brass Hex Bar 19mm' },
-                  { value: 'MAT-003', label: 'MAT-003: SS Round Bar 304 32mm' },
-                ]}
-                defaultValue="MAT-001"
+                options={materials.map(m => ({
+                  value: m.id,
+                  label: `${m.materialCode}: ${m.materialName.slice(0, 24)}... (Stock: ${m.currentStock} ${m.unit})`
+                }))}
+                value={inwardMatId}
+                onChange={e => setInwardMatId(e.target.value)}
+                allowOther={false}
               />
-              <FormField label="Received Weight / Quantity" suffix="kg" required defaultValue="850" />
-              <FormField label="Supplier Invoice No." defaultValue="INV-JB-9921" />
-              <FormField label="Purity / Heat No." defaultValue="HEAT-CW614-2026-90" />
+              <DatePicker label="Receipt Date" required defaultValue={new Date().toISOString().split('T')[0]} />
+              <FormField
+                label="Received Weight / Quantity"
+                suffix="kg"
+                required
+                value={inwardQty}
+                onChange={e => setInwardQty(e.target.value)}
+              />
+              <FormField
+                label="Supplier / Vendor"
+                value={inwardSupplier}
+                onChange={e => setInwardSupplier(e.target.value)}
+              />
+              <FormField
+                label="Supplier Invoice / Challan #"
+                value={inwardInvoice}
+                onChange={e => setInwardInvoice(e.target.value)}
+              />
+              <FormField
+                label="Heat / MTC #"
+                value={inwardHeat}
+                onChange={e => setInwardHeat(e.target.value)}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
@@ -360,20 +413,30 @@ export const QuickAddModal: React.FC = () => {
         {selectedTab === 'outward' && (
           <form onSubmit={handleOutwardSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField label="Issue Slip No." required defaultValue="ISS-2026-118" />
-              <DatePicker label="Issue Date" required defaultValue="2026-09-10" />
               <SelectField
                 label="Material to Issue"
                 required
-                options={[
-                  { value: 'MAT-001', label: 'MAT-001: Brass Round Rod CW614N 25mm' },
-                  { value: 'MAT-002', label: 'MAT-002: Brass Hex Bar 19mm' },
-                ]}
-                defaultValue="MAT-001"
+                options={materials.map(m => ({
+                  value: m.id,
+                  label: `${m.materialCode}: ${m.materialName.slice(0, 24)}... (Available: ${m.currentStock} ${m.unit})`
+                }))}
+                value={outwardMatId}
+                onChange={e => setOutwardMatId(e.target.value)}
+                allowOther={false}
               />
-              <FormField label="Issued Quantity" suffix="kg" required defaultValue="150" />
-              <FormField label="For Production Job #" defaultValue="JOB-2026-001" />
-              <FormField label="Operator / Machine" defaultValue="Rajeshbhai - CNC Lathe 01" />
+              <DatePicker label="Issue Date" required defaultValue={new Date().toISOString().split('T')[0]} />
+              <FormField
+                label="Issued Quantity"
+                suffix="kg"
+                required
+                value={outwardQty}
+                onChange={e => setOutwardQty(e.target.value)}
+              />
+              <FormField
+                label="Issued To (Worker / Machine)"
+                value={outwardIssuedTo}
+                onChange={e => setOutwardIssuedTo(e.target.value)}
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>

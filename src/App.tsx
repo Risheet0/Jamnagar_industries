@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { WorkerProvider } from './context/WorkerContext';
+import { MaterialsProvider } from './context/MaterialsContext';
+import { QualityProvider } from './context/QualityContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -121,9 +123,13 @@ export function App() {
   return (
     <NavigationProvider>
       <WorkerProvider>
-        <ToastProvider>
-          <AppRouter />
-        </ToastProvider>
+        <MaterialsProvider>
+          <QualityProvider>
+            <ToastProvider>
+              <AppRouter />
+            </ToastProvider>
+          </QualityProvider>
+        </MaterialsProvider>
       </WorkerProvider>
     </NavigationProvider>
   );

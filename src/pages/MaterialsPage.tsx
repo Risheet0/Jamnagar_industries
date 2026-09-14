@@ -4,15 +4,16 @@ import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
-import { mockMaterials } from '../mock/materialsData';
+import { useMaterials } from '../context/MaterialsContext';
 import { Material, TableColumn } from '../types';
 import { PackagePlus, ArrowDownLeft, ArrowUpRight, Eye } from 'lucide-react';
 
 export const MaterialsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
+  const { materials } = useMaterials();
   const [activeTab, setActiveTab] = useState<'all' | 'low' | 'brass' | 'steel'>('all');
 
-  const filteredMaterials = mockMaterials.filter(m => {
+  const filteredMaterials = materials.filter(m => {
     if (activeTab === 'low') return m.status === 'Low Stock' || m.status === 'Out of Stock';
     if (activeTab === 'brass') return m.type.includes('Brass');
     if (activeTab === 'steel') return m.type.includes('Steel');
@@ -127,7 +128,7 @@ export const MaterialsPage: React.FC = () => {
             onClick={() => setActiveTab('all')}
           >
             <span>All Materials</span>
-            <span className="tab-badge">{mockMaterials.length}</span>
+            <span className="tab-badge">{materials.length}</span>
           </button>
           <button
             type="button"
@@ -136,7 +137,7 @@ export const MaterialsPage: React.FC = () => {
           >
             <span>Low / Out of Stock</span>
             <span className="tab-badge" style={{ backgroundColor: 'var(--color-status-warning-bg)', color: 'var(--color-status-warning-text)' }}>
-              {mockMaterials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length}
+              {materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length}
             </span>
           </button>
           <button
@@ -145,7 +146,7 @@ export const MaterialsPage: React.FC = () => {
             onClick={() => setActiveTab('brass')}
           >
             <span>Brass Section</span>
-            <span className="tab-badge">{mockMaterials.filter(m => m.type.includes('Brass')).length}</span>
+            <span className="tab-badge">{materials.filter(m => m.type.includes('Brass')).length}</span>
           </button>
           <button
             type="button"
@@ -153,7 +154,7 @@ export const MaterialsPage: React.FC = () => {
             onClick={() => setActiveTab('steel')}
           >
             <span>Steel & Alloys</span>
-            <span className="tab-badge">{mockMaterials.filter(m => m.type.includes('Steel')).length}</span>
+            <span className="tab-badge">{materials.filter(m => m.type.includes('Steel')).length}</span>
           </button>
         </div>
       </div>
