@@ -309,6 +309,49 @@ export const QualityPage: React.FC = () => {
     }
   ];
 
+  // Quality Pass Rate Gauge component
+  const PassRateGauge: React.FC<{ rate: number }> = ({ rate }) => {
+    const color = rate >= 95
+      ? 'var(--color-status-success-solid)'
+      : rate >= 85
+      ? 'var(--color-status-warning-solid)'
+      : 'var(--color-status-danger-solid)';
+
+    const radius = 20;
+    const circ = 2 * Math.PI * radius;
+    const offset = circ - (Math.min(100, Math.max(0, rate)) / 100) * circ;
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <svg width="48" height="48" viewBox="0 0 50 50" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+          <circle
+            cx="25"
+            cy="25"
+            r={radius}
+            fill="transparent"
+            stroke="var(--color-border-subtle)"
+            strokeWidth="5"
+          />
+          <circle
+            cx="25"
+            cy="25"
+            r={radius}
+            fill="transparent"
+            stroke={color}
+            strokeWidth="5"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+          />
+        </svg>
+        <div className="tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color }}>
+          {rate}%
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <PageHeader
@@ -320,13 +363,13 @@ export const QualityPage: React.FC = () => {
         actions={
           <Button
             variant="primary"
-            icon={<Plus size={14} />}
+            icon={<Plus size={15} />}
             onClick={() => {
               resetForm();
               setIsNewModalOpen(true);
             }}
           >
-            + New QC Inspection
+            + Log QC Inspection
           </Button>
         }
       />
@@ -340,25 +383,25 @@ export const QualityPage: React.FC = () => {
           icon={<ShieldCheck size={18} />}
         />
         <SummaryCard
-          title="First-Pass Rate"
-          value={`${passRate}%`}
-          subtitle={`${passedInspections} passed out of ${totalInspections}`}
+          title="First-Pass Quality Yield"
+          value={<PassRateGauge rate={passRate} />}
+          subtitle={`${passedInspections} passed out of ${totalInspections} batches`}
           icon={<Percent size={18} />}
-          statusTag={passRate >= 95 ? { label: 'High Yield', variant: 'success' } : { label: 'Attention', variant: 'warning' }}
+          statusTag={passRate >= 95 ? { label: 'Target Met (≥95%)', variant: 'success' } : passRate >= 85 ? { label: 'Near Target (85-94%)', variant: 'warning' } : { label: 'Low Yield (<85%)', variant: 'danger' }}
         />
         <SummaryCard
           title="Rejected Parts Qty"
-          value={`${totalRejectedParts} pcs`}
+          value={`${totalRejectedParts.toLocaleString('en-IN')} pcs`}
           subtitle="Non-conforming units logged"
           icon={<AlertOctagon size={18} />}
           statusTag={totalRejectedParts === 0 ? { label: 'Zero Defect', variant: 'success' } : { label: `${totalRejectedParts} Scrap`, variant: 'danger' }}
         />
         <SummaryCard
-          title="Open NCRs / Failed"
+          title="Failed Inspections (NCRs)"
           value={failedInspections}
-          subtitle="Requires corrective tool offset"
+          subtitle="Requires tooling / operator corrective action"
           icon={<CheckSquare size={18} />}
-          statusTag={failedInspections === 0 ? { label: 'Clean', variant: 'success' } : { label: `${failedInspections} Action Needed`, variant: 'warning' }}
+          statusTag={failedInspections === 0 ? { label: 'All Clean', variant: 'success' } : { label: `${failedInspections} Action Needed`, variant: 'danger' }}
         />
       </div>
 
@@ -392,7 +435,7 @@ export const QualityPage: React.FC = () => {
             className={`tab-btn ${activeTab === 'fail' ? 'active' : ''}`}
             onClick={() => setActiveTab('fail')}
           >
-            <span>Failed / NCR</span>
+            <span>Failed Batches (NCR)</span>
             <span
               className="tab-badge"
               style={{ backgroundColor: 'var(--color-status-danger-bg)', color: 'var(--color-status-danger-text)' }}
@@ -405,7 +448,7 @@ export const QualityPage: React.FC = () => {
             className={`tab-btn ${activeTab === 'first-piece' ? 'active' : ''}`}
             onClick={() => setActiveTab('first-piece')}
           >
-            <span>First-Piece Sign-offs</span>
+            <span>First-Piece Clearances</span>
             <span className="tab-badge">
               {inspections.filter(i => i.inspectionType === 'First-Piece').length}
             </span>
@@ -413,25 +456,32 @@ export const QualityPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Data Table */}
+      {/* Inspections Master Table */}
       <DataTable
         data={filteredInspections}
         columns={columns}
-        searchPlaceholder="Search QC log by job #, product, inspector, defects..."
+        searchPlaceholder="Search inspections by job #, product, inspector, remarks..."
         onRowClick={(row) => setSelectedInspectionForView(row)}
+        rowBorderAccent={(i) => i.result === 'Fail' ? 'var(--color-status-danger-solid)' : undefined}
         actions={(row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => setSelectedInspectionForView(row)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedInspectionForView(row);
+              }}
               className="btn btn-ghost btn-sm btn-icon-only"
               title="View QC Details"
             >
               <Eye size={14} style={{ color: 'var(--color-brand-primary)' }} />
             </button>
             <button
-              onClick={() => setDeleteId(row.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(row.id);
+              }}
               className="btn btn-ghost btn-sm btn-icon-only"
-              title="Delete Inspection"
+              title="Delete QC Record"
             >
               <Trash2 size={14} style={{ color: 'var(--color-status-danger-solid)' }} />
             </button>
@@ -441,7 +491,7 @@ export const QualityPage: React.FC = () => {
           resetForm();
           setIsNewModalOpen(true);
         }}
-        addLabel="Record Inspection"
+        addLabel="Log Inspection"
         emptyTitle="No quality inspections match this filter"
         emptySubtitle="Record a first-piece clearance or in-process sampling inspection."
       />

@@ -224,9 +224,13 @@ html, body {
 }
 
 /* Status variants */
+/* Success (Green) */
 .status-badge-active,
+.status-badge-active-production,
 .status-badge-completed,
 .status-badge-passed,
+.status-badge-pass,
+.status-badge-present,
 .status-badge-in-stock,
 .status-badge-success {
   background-color: var(--color-status-success-bg);
@@ -234,15 +238,22 @@ html, body {
   border-color: var(--color-status-success-border);
 }
 .status-badge-active .status-badge-dot,
+.status-badge-active-production .status-badge-dot,
 .status-badge-completed .status-badge-dot,
 .status-badge-passed .status-badge-dot,
+.status-badge-pass .status-badge-dot,
+.status-badge-present .status-badge-dot,
 .status-badge-in-stock .status-badge-dot,
 .status-badge-success .status-badge-dot {
   background-color: var(--color-status-success-solid);
 }
 
+/* Warning (Amber) */
 .status-badge-pending,
+.status-badge-on-leave,
+.status-badge-on-hold,
 .status-badge-low-stock,
+.status-badge-high,
 .status-badge-warning,
 .status-badge-maintenance {
   background-color: var(--color-status-warning-bg);
@@ -250,14 +261,23 @@ html, body {
   border-color: var(--color-status-warning-border);
 }
 .status-badge-pending .status-badge-dot,
+.status-badge-on-leave .status-badge-dot,
+.status-badge-on-hold .status-badge-dot,
 .status-badge-low-stock .status-badge-dot,
+.status-badge-high .status-badge-dot,
 .status-badge-warning .status-badge-dot,
 .status-badge-maintenance .status-badge-dot {
   background-color: var(--color-status-warning-solid);
 }
 
+/* Danger (Red) */
 .status-badge-rejected,
+.status-badge-fail,
+.status-badge-absent,
 .status-badge-out-of-stock,
+.status-badge-delayed,
+.status-badge-critical,
+.status-badge-terminated,
 .status-badge-inactive,
 .status-badge-danger,
 .status-badge-overdue {
@@ -266,14 +286,23 @@ html, body {
   border-color: var(--color-status-danger-border);
 }
 .status-badge-rejected .status-badge-dot,
+.status-badge-fail .status-badge-dot,
+.status-badge-absent .status-badge-dot,
 .status-badge-out-of-stock .status-badge-dot,
+.status-badge-delayed .status-badge-dot,
+.status-badge-critical .status-badge-dot,
+.status-badge-terminated .status-badge-dot,
 .status-badge-inactive .status-badge-dot,
 .status-badge-danger .status-badge-dot,
 .status-badge-overdue .status-badge-dot {
   background-color: var(--color-status-danger-solid);
 }
 
+/* Info (Blue) */
 .status-badge-in-production,
+.status-badge-quality-check,
+.status-badge-on-order,
+.status-badge-medium,
 .status-badge-info,
 .status-badge-in-progress {
   background-color: var(--color-status-info-bg);
@@ -281,17 +310,41 @@ html, body {
   border-color: var(--color-status-info-border);
 }
 .status-badge-in-production .status-badge-dot,
+.status-badge-quality-check .status-badge-dot,
+.status-badge-on-order .status-badge-dot,
+.status-badge-medium .status-badge-dot,
 .status-badge-info .status-badge-dot,
 .status-badge-in-progress .status-badge-dot {
   background-color: var(--color-status-info-solid);
 }
 
+/* Purple */
+.status-badge-sample-prototype,
+.status-badge-sample---prototype,
+.status-badge-purple {
+  background-color: var(--color-status-purple-bg);
+  color: var(--color-status-purple-text);
+  border-color: var(--color-status-purple-border);
+}
+.status-badge-sample-prototype .status-badge-dot,
+.status-badge-sample---prototype .status-badge-dot,
+.status-badge-purple .status-badge-dot {
+  background-color: #9333ea;
+}
+
+/* Neutral (Gray) */
+.status-badge-discontinued,
+.status-badge-cancelled,
+.status-badge-normal,
 .status-badge-draft,
 .status-badge-neutral {
   background-color: var(--color-status-neutral-bg);
   color: var(--color-status-neutral-text);
   border-color: var(--color-status-neutral-border);
 }
+.status-badge-discontinued .status-badge-dot,
+.status-badge-cancelled .status-badge-dot,
+.status-badge-normal .status-badge-dot,
 .status-badge-draft .status-badge-dot,
 .status-badge-neutral .status-badge-dot {
   background-color: var(--color-text-muted);

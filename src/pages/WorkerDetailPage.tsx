@@ -6,7 +6,8 @@ import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useProduction } from '../context/ProductionContext';
-import { ArrowLeft, User, IndianRupee, Layers, Edit3 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { ArrowLeft, User, IndianRupee, Layers, Edit3, UserCheck, UserX } from 'lucide-react';
 
 interface WorkerDetailPageProps {
   id?: string;
@@ -14,8 +15,9 @@ interface WorkerDetailPageProps {
 
 export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const { currentPath, navigate } = useNavigation();
-  const { getWorker, workers } = useWorkers();
+  const { getWorker, workers, getTodayAttendance, toggleAttendance } = useWorkers();
   const { jobs } = useProduction();
+  const { showToast } = useToast();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Extract ID from path if not passed as prop e.g. /workers/WRK-001
@@ -35,6 +37,27 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
     );
   }
 
+  const todayAtt = getTodayAttendance(worker.workerId || worker.id);
+  const isPresent = todayAtt ? todayAtt.present : false;
+
+  const handleAttendanceToggle = () => {
+    if (worker.status !== 'Active') {
+      showToast({
+        title: 'Status Not Active',
+        message: `Worker is currently ${worker.status}. Daily attendance is only available for active operators.`,
+        type: 'warning'
+      });
+      return;
+    }
+    toggleAttendance(worker.workerId || worker.id);
+    const willBePresent = !isPresent;
+    showToast({
+      title: willBePresent ? 'Attendance Marked Present' : 'Attendance Marked Absent',
+      message: `${worker.name} is now marked ${willBePresent ? 'Present on shop floor' : 'Absent today'}.`,
+      type: willBePresent ? 'success' : 'info'
+    });
+  };
+
   const assignedJobs = jobs.filter(
     j => j.assignedWorkerId === worker.workerId || j.assignedWorkerId === worker.id || (j.assignedWorker && j.assignedWorker.includes(worker.name.split(' ')[0]))
   );
@@ -48,7 +71,18 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
           { label: 'Workers', path: '/workers' },
           { label: worker.workerId }
         ]}
-        badge={<StatusBadge status={worker.status} />}
+        badge={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <StatusBadge status={worker.status} />
+            {worker.status === 'Active' && (
+              <StatusBadge
+                status={isPresent ? 'Present' : 'Absent'}
+                customLabel={isPresent ? `Present (${todayAtt?.checkInTime || '08:00 AM'})` : 'Absent Today'}
+                icon={true}
+              />
+            )}
+          </div>
+        }
         actions={
           <>
             <Button
@@ -58,8 +92,17 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
             >
               Back to Workers
             </Button>
+            {worker.status === 'Active' && (
+              <Button
+                variant={isPresent ? 'outline' : 'primary'}
+                icon={isPresent ? <UserX size={14} /> : <UserCheck size={14} />}
+                onClick={handleAttendanceToggle}
+              >
+                {isPresent ? 'Mark Absent Today' : 'Clock In / Mark Present'}
+              </Button>
+            )}
             <Button
-              variant="primary"
+              variant="secondary"
               icon={<Edit3 size={14} />}
               onClick={() => setIsEditModalOpen(true)}
             >

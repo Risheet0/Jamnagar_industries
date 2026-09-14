@@ -57,29 +57,63 @@ export const ProductionPage: React.FC = () => {
       )
     },
     {
-      header: 'Batch Progress',
+      header: 'Batch Progress & Pace',
       accessor: 'producedQuantity',
       align: 'right',
       sortable: true,
       render: (j) => {
-        const percent = Math.round((j.producedQuantity / j.requiredQuantity) * 100);
+        const percent = Math.round((j.producedQuantity / Math.max(1, j.requiredQuantity)) * 100);
+        
+        // Pace tracking calculation
+        let barColor = 'var(--color-brand-primary)';
+        let paceLabel = `${percent}% complete`;
+        
+        if (j.status === 'Completed' || percent >= 100) {
+          barColor = 'var(--color-status-success-solid)';
+          paceLabel = 'Completed';
+        } else if (j.status === 'Delayed') {
+          barColor = 'var(--color-status-danger-solid)';
+          paceLabel = 'Behind Schedule (Delayed)';
+        } else {
+          // Compare elapsed time vs completion
+          const start = new Date(j.date).getTime();
+          const due = new Date(j.dueDate).getTime();
+          const now = Date.now();
+          const totalDuration = Math.max(86400000, due - start);
+          const elapsed = Math.min(totalDuration, Math.max(0, now - start));
+          const elapsedPct = Math.round((elapsed / totalDuration) * 100);
+
+          if (elapsedPct > 50 && percent < elapsedPct * 0.6) {
+            barColor = 'var(--color-status-danger-solid)';
+            paceLabel = 'Lagging behind timeline';
+          } else if (elapsedPct > 30 && percent < elapsedPct * 0.8) {
+            barColor = 'var(--color-status-warning-solid)';
+            paceLabel = 'Caution: Slow production pace';
+          }
+        }
+
         return (
-          <div style={{ textAlign: 'right', minWidth: '120px' }}>
-            <div className="tabular-nums" style={{ fontWeight: 700 }}>
-              {j.producedQuantity} / {j.requiredQuantity} pcs
+          <div style={{ textAlign: 'right', minWidth: '140px' }}>
+            <div className="tabular-nums" style={{ fontWeight: 700, fontSize: '13px' }}>
+              {j.producedQuantity.toLocaleString('en-IN')} / {j.requiredQuantity.toLocaleString('en-IN')} pcs
             </div>
             <div style={{
-              height: '4px',
+              height: '5px',
               backgroundColor: 'var(--color-bg-muted)',
-              borderRadius: '2px',
+              borderRadius: '3px',
               overflow: 'hidden',
               marginTop: '4px'
             }}>
               <div style={{
                 height: '100%',
                 width: `${Math.min(100, percent)}%`,
-                backgroundColor: percent >= 100 ? 'var(--color-status-success-solid)' : 'var(--color-brand-primary)'
+                backgroundColor: barColor,
+                borderRadius: '3px',
+                transition: 'width 0.4s ease'
               }} />
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              {paceLabel}
             </div>
           </div>
         );
@@ -93,12 +127,21 @@ export const ProductionPage: React.FC = () => {
       render: (j) => <span style={{ fontSize: '12px' }}>{j.dueDate}</span>
     },
     {
-      header: 'Status',
+      header: 'Status & Priority',
       accessor: 'status',
-      width: '130px',
-      align: 'center',
+      width: '180px',
       sortable: true,
-      render: (j) => <StatusBadge status={j.status} size="sm" />
+      render: (j) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'nowrap' }}>
+          <StatusBadge status={j.status} size="sm" />
+          <StatusBadge
+            status={j.priority}
+            size="sm"
+            showDot={false}
+            style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 600 }}
+          />
+        </div>
+      )
     }
   ];
 
@@ -186,6 +229,11 @@ export const ProductionPage: React.FC = () => {
           columns={columns}
           searchPlaceholder="Search active floor jobs..."
           onRowClick={(row) => navigate(`/production/jobs/${row.id}`)}
+          rowBorderAccent={(j) => {
+            if (j.priority === 'Critical' || j.status === 'Delayed') return 'var(--color-status-danger-solid)';
+            if (j.priority === 'High') return 'var(--color-status-warning-solid)';
+            return undefined;
+          }}
           actions={(row) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
               <button

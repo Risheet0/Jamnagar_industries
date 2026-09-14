@@ -21,12 +21,13 @@ import {
   Plus,
   ArrowDownLeft,
   ShieldAlert,
-  Clock
+  Clock,
+  CheckCircle2
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
-  const { workers } = useWorkers();
+  const { workers, getPresentCount, getAbsentCount } = useWorkers();
   const { materials } = useMaterials();
   const { products } = useProducts();
   const { jobs } = useProduction();
@@ -36,6 +37,8 @@ export const DashboardPage: React.FC = () => {
   const activeWorkers = workers.filter(w => w.status === 'Active').length;
   const onLeaveWorkers = workers.filter(w => w.status === 'On Leave').length;
   const inactiveWorkers = workers.filter(w => w.status === 'Inactive').length;
+  const presentWorkers = getPresentCount();
+  const absentWorkers = getAbsentCount();
 
   const totalMaterials = materials.length;
   const lowStockMaterials = materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock');
@@ -51,6 +54,13 @@ export const DashboardPage: React.FC = () => {
   // Recent Quality issues count
   const failInspections = inspections.filter(i => i.result === 'Fail');
 
+  // Total issues needing immediate management attention
+  const attentionItemsCount =
+    lowStockMaterials.length +
+    delayedJobs.length +
+    absentWorkers +
+    failInspections.length;
+
   // Compute total monthly wage payout
   const totalMonthlyWage = workers.reduce(
     (acc, w) => acc + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary),
@@ -58,7 +68,7 @@ export const DashboardPage: React.FC = () => {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Page Header */}
       <PageHeader
         title="Plant Operations Dashboard"
@@ -105,10 +115,10 @@ export const DashboardPage: React.FC = () => {
           <div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>Current Shift: {mockCompanyProfile.shiftTiming.currentShift}</span>
-              <span className="status-badge status-badge-active" style={{ fontSize: '10px' }}>Active</span>
+              <StatusBadge status="Active" size="sm" icon={true} />
             </div>
             <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-              Plant Status: <strong>{mockCompanyProfile.shiftTiming.plantStatus}</strong> • Floor Operators Present: <strong>{activeWorkers} / {totalWorkers}</strong>
+              Plant Status: <strong>{mockCompanyProfile.shiftTiming.plantStatus}</strong> • Floor Operators Present Today: <strong className="tabular-nums" style={{ color: '#38bdf8' }}>{presentWorkers} / {activeWorkers} Active</strong> ({totalWorkers} on roster)
             </div>
           </div>
         </div>
@@ -129,52 +139,151 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Summary Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
-        <SummaryCard
-          title="Active Karigars / Workers"
-          value={`${activeWorkers} / ${totalWorkers}`}
-          subtitle={`${onLeaveWorkers} On Leave, ${inactiveWorkers} Inactive`}
-          icon={<Users size={18} />}
-          trend={{ value: `${totalWorkers > 0 ? Math.round((activeWorkers / totalWorkers) * 100) : 100}%`, isPositive: true, label: 'turnout' }}
-          onClick={() => navigate('/workers')}
-        />
+      {/* ZONE 1: NEEDS ATTENTION (Health-First) */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: attentionItemsCount > 0 ? 'var(--color-status-danger-solid)' : 'var(--color-status-success-solid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {attentionItemsCount > 0 ? (
+              <>
+                <AlertTriangle size={16} />
+                <span>Needs Immediate Attention ({attentionItemsCount})</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>Plant Health: All Systems Normal</span>
+              </>
+            )}
+          </div>
+          {attentionItemsCount > 0 && (
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Prioritized operational alerts requiring supervisor action
+            </span>
+          )}
+        </div>
 
-        <SummaryCard
-          title="Active Production Jobs"
-          value={activeJobs.length}
-          subtitle={`${delayedJobs.length} delayed, ${completedJobs.length} completed`}
-          icon={<Factory size={18} />}
-          statusTag={delayedJobs.length > 0 ? { label: `${delayedJobs.length} Delayed`, variant: 'danger' } : { label: 'On Schedule', variant: 'success' }}
-          onClick={() => navigate('/production/jobs')}
-        />
+        {attentionItemsCount === 0 ? (
+          <div
+            className="card"
+            style={{
+              padding: '16px 20px',
+              borderLeft: '4px solid var(--color-status-success-solid)',
+              backgroundColor: 'var(--color-status-success-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px'
+            }}
+          >
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(22, 163, 74, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-status-success-solid)', flexShrink: 0 }}>
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--color-status-success-text)', fontSize: '14px' }}>
+                All Plant Operations Healthy & On Track
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                Raw materials are above safety thresholds, 100% active karigars clocked in today, all production jobs on schedule, and zero active quality rejections.
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            {lowStockMaterials.length > 0 && (
+              <SummaryCard
+                title="Low Stock Materials"
+                value={`${lowStockMaterials.length} Items`}
+                subtitle="Below minimum safety buffer"
+                icon={<Boxes size={18} />}
+                statusTag={{ label: 'Restock Required', variant: 'warning' }}
+                onClick={() => navigate('/materials/stock')}
+              />
+            )}
 
-        <SummaryCard
-          title="Raw Material Items"
-          value={totalMaterials}
-          subtitle={`${lowStockMaterials.length} items below safety limit`}
-          icon={<Boxes size={18} />}
-          statusTag={lowStockMaterials.length > 0 ? { label: `${lowStockMaterials.length} Low Stock`, variant: 'warning' } : { label: 'Sufficient', variant: 'success' }}
-          onClick={() => navigate('/materials')}
-        />
+            {delayedJobs.length > 0 && (
+              <SummaryCard
+                title="Delayed Production Jobs"
+                value={`${delayedJobs.length} Jobs`}
+                subtitle="Behind committed deadline"
+                icon={<Factory size={18} />}
+                statusTag={{ label: 'Critical Delay', variant: 'danger' }}
+                onClick={() => navigate('/production/jobs')}
+              />
+            )}
 
-        <SummaryCard
-          title="Manufactured Products"
-          value={products.length}
-          subtitle="Active precision component catalogue"
-          icon={<Cpu size={18} />}
-          onClick={() => navigate('/products')}
-        />
+            {absentWorkers > 0 && (
+              <SummaryCard
+                title="Absent Floor Karigars"
+                value={`${absentWorkers} Absent`}
+                subtitle={`${presentWorkers} of ${activeWorkers} active present`}
+                icon={<Users size={18} />}
+                statusTag={{ label: 'Shift Gap', variant: 'danger' }}
+                onClick={() => navigate('/workers')}
+              />
+            )}
 
-        <SummaryCard
-          title="On-Time Delivery (OTD)"
-          value={`${otdPercent}%`}
-          subtitle="Batch dispatch reliability rate"
-          icon={<Clock size={18} />}
-          statusTag={otdPercent >= 90 ? { label: 'Optimal', variant: 'success' } : { label: 'Attention', variant: 'warning' }}
-          onClick={() => navigate('/reports')}
-        />
-      </div>
+            {failInspections.length > 0 && (
+              <SummaryCard
+                title="Quality Non-Conformances"
+                value={`${failInspections.length} Batches`}
+                subtitle="Failed QC stage inspection"
+                icon={<ShieldAlert size={18} />}
+                statusTag={{ label: 'Action Required', variant: 'danger' }}
+                onClick={() => navigate('/quality')}
+              />
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ZONE 2: OPERATIONS OVERVIEW (Neutral Totals) */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Operations Overview & Capacity
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+          <SummaryCard
+            title="Total Active Workforce"
+            value={`${activeWorkers}`}
+            subtitle={`${totalWorkers} total roster (${onLeaveWorkers} leave, ${inactiveWorkers} inactive)`}
+            icon={<Users size={18} />}
+            trend={{ value: `${totalWorkers > 0 ? Math.round((activeWorkers / totalWorkers) * 100) : 100}%`, isPositive: true, label: 'employed' }}
+            onClick={() => navigate('/workers')}
+          />
+
+          <SummaryCard
+            title="Active Production Jobs"
+            value={activeJobs.length}
+            subtitle={`${completedJobs.length} batches completed`}
+            icon={<Factory size={18} />}
+            onClick={() => navigate('/production/jobs')}
+          />
+
+          <SummaryCard
+            title="Raw Material Items"
+            value={totalMaterials}
+            subtitle="Brass, Copper, SS & MS master stock"
+            icon={<Boxes size={18} />}
+            onClick={() => navigate('/materials')}
+          />
+
+          <SummaryCard
+            title="Manufactured Catalogue"
+            value={products.length}
+            subtitle="Precision turned brass parts"
+            icon={<Cpu size={18} />}
+            onClick={() => navigate('/products')}
+          />
+
+          <SummaryCard
+            title="On-Time Delivery (OTD)"
+            value={`${otdPercent}%`}
+            subtitle="Batch dispatch reliability rate"
+            icon={<Clock size={18} />}
+            statusTag={otdPercent >= 90 ? { label: 'Optimal', variant: 'success' } : { label: 'Attention', variant: 'warning' }}
+            onClick={() => navigate('/reports')}
+          />
+        </div>
+      </section>
 
       {/* Two Columns: Active Production Floor & Low Stock / Urgent Alerts */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
@@ -249,12 +358,12 @@ export const DashboardPage: React.FC = () => {
                           <div style={{
                             height: '100%',
                             width: `${Math.min(100, percent)}%`,
-                            backgroundColor: percent >= 100 ? 'var(--color-status-success-solid)' : 'var(--color-brand-primary)'
+                            backgroundColor: percent >= 100 ? 'var(--color-status-success-solid)' : job.status === 'Delayed' ? 'var(--color-status-danger-solid)' : 'var(--color-brand-primary)'
                           }} />
                         </div>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <StatusBadge status={job.status} size="sm" />
+                        <StatusBadge status={job.status} size="sm" icon={true} />
                       </td>
                     </tr>
                   );
@@ -299,7 +408,7 @@ export const DashboardPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <span className="mono-code" style={{ fontSize: '10px' }}>{mat.materialCode}</span>
-                    <StatusBadge status={mat.status} size="sm" />
+                    <StatusBadge status={mat.status} size="sm" icon={true} />
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)', lineHeight: 1.3 }}>
                     {mat.materialName}

@@ -33,6 +33,14 @@ export interface Worker {
   aadharNumber?: string;
 }
 
+export interface AttendanceRecord {
+  workerId: string;
+  date: string;          // YYYY-MM-DD
+  present: boolean;
+  checkInTime?: string;  // e.g. "08:15 AM"
+  notes?: string;        // e.g. "Half day", "Left early"
+}
+
 export type MaterialType = 'Brass Bar / Rod' | 'Stainless Steel' | 'Mild Steel' | 'Aluminum Alloy' | 'Cutting Tool' | 'Consumable / Oil' | 'Fastener / Hardware';
 
 export type MaterialUnit = 'kg' | 'meters' | 'pieces' | 'liters' | 'rolls' | 'boxes';

@@ -51,17 +51,44 @@ export const MaterialsPage: React.FC = () => {
       accessor: 'currentStock',
       align: 'right',
       sortable: true,
-      render: (m) => (
-        <div style={{ textAlign: 'right' }}>
-          <div className="tabular-nums" style={{
-            fontWeight: 700,
-            color: m.status === 'Out of Stock' ? 'var(--color-status-danger-solid)' : m.status === 'Low Stock' ? 'var(--color-status-warning-solid)' : 'var(--color-text-primary)'
-          }}>
-            {m.currentStock} {m.unit}
+      render: (m) => {
+        const min = Math.max(1, m.minimumStock);
+        const pct = Math.min(100, Math.max(4, Math.round((m.currentStock / (min * 2)) * 100)));
+        const isRed = m.currentStock <= min;
+        const isAmber = !isRed && m.currentStock <= min * 1.2;
+        const barColor = isRed ? 'var(--color-status-danger-solid)' : isAmber ? 'var(--color-status-warning-solid)' : 'var(--color-status-success-solid)';
+
+        return (
+          <div style={{ textAlign: 'right', minWidth: '130px' }}>
+            <div className="tabular-nums" style={{
+              fontWeight: 700,
+              fontSize: '13px',
+              color: isRed ? 'var(--color-status-danger-solid)' : isAmber ? 'var(--color-status-warning-solid)' : 'var(--color-text-primary)'
+            }}>
+              {m.currentStock.toLocaleString('en-IN')} {m.unit}
+            </div>
+            {/* Visual Stock Health Bar */}
+            <div style={{
+              height: '5px',
+              backgroundColor: 'var(--color-bg-muted)',
+              borderRadius: '3px',
+              overflow: 'hidden',
+              margin: '3px 0 2px auto',
+              width: '100%',
+              maxWidth: '120px'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${pct}%`,
+                backgroundColor: barColor,
+                borderRadius: '3px',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Min: {m.minimumStock} {m.unit}</div>
           </div>
-          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Min: {m.minimumStock} {m.unit}</div>
-        </div>
-      )
+        );
+      }
     },
     {
       header: 'Unit Rate',

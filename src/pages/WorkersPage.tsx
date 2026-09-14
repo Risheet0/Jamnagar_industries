@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
+import { SummaryCard } from '../components/common/SummaryCard';
 import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
@@ -10,11 +11,18 @@ import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useToast } from '../context/ToastContext';
 import { Worker, TableColumn } from '../types';
-import { UserPlus, Eye, Trash2, Edit3 } from 'lucide-react';
+import { UserPlus, Eye, Trash2, Edit3, UserCheck, UserX, Clock, Users } from 'lucide-react';
 
 export const WorkersPage: React.FC = () => {
   const { openQuickAdd } = useNavigation();
-  const { workers, deleteWorker } = useWorkers();
+  const {
+    workers,
+    deleteWorker,
+    getTodayAttendance,
+    toggleAttendance,
+    getPresentCount,
+    getAbsentCount
+  } = useWorkers();
   const { showToast } = useToast();
 
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -23,6 +31,11 @@ export const WorkersPage: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
+
+  const presentCount = getPresentCount();
+  const absentCount = getAbsentCount();
+  const onLeaveCount = workers.filter(w => w.status === 'On Leave').length;
+  const activeCount = workers.filter(w => w.status === 'Active').length;
 
   const handleDeleteWorker = () => {
     if (workerToDelete) {
@@ -41,48 +54,158 @@ export const WorkersPage: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
+  const handleToggleAttendance = (e: React.MouseEvent, worker: Worker) => {
+    e.stopPropagation();
+    if (worker.status !== 'Active') {
+      showToast({
+        title: 'Attendance Not Applicable',
+        message: `Worker is currently ${worker.status}. Change status to Active to mark daily attendance.`,
+        type: 'warning'
+      });
+      return;
+    }
+    toggleAttendance(worker.workerId || worker.id);
+    const rec = getTodayAttendance(worker.workerId || worker.id);
+    const willBePresent = !(rec && rec.present);
+    showToast({
+      title: willBePresent ? 'Marked Present' : 'Marked Absent',
+      message: `${worker.name} marked ${willBePresent ? 'Present on shop floor' : 'Absent today'}.`,
+      type: willBePresent ? 'success' : 'info'
+    });
+  };
+
   const filteredWorkers = skillFilter === 'ALL'
     ? workers
     : workers.filter(w => w.skill === skillFilter);
 
   const columns: TableColumn<Worker>[] = [
     {
-      header: 'Worker ID',
-      accessor: 'workerId',
-      width: '110px',
-      sortable: true,
-      render: (w) => <span className="mono-code">{w.workerId}</span>
+      header: "Today's Attendance",
+      accessor: 'id',
+      width: '160px',
+      sortable: false,
+      render: (w) => {
+        if (w.status !== 'Active') {
+          return (
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+              {w.status === 'On Leave' ? '🌴 On Leave' : `(${w.status})`}
+            </span>
+          );
+        }
+
+        const att = getTodayAttendance(w.workerId || w.id);
+        const isPresent = att ? att.present : false;
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isPresent ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  backgroundColor: 'var(--color-status-success-bg)',
+                  color: 'var(--color-status-success-text)',
+                  border: '1px solid var(--color-status-success-border)',
+                  padding: '3px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '11px',
+                  fontWeight: 600
+                }}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-status-success-solid)' }} />
+                <span>Present</span>
+                {att?.checkInTime && <span style={{ fontSize: '10px', opacity: 0.85, marginLeft: '2px' }}>{att.checkInTime}</span>}
+              </span>
+            ) : (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  backgroundColor: 'var(--color-status-danger-bg)',
+                  color: 'var(--color-status-danger-text)',
+                  border: '1px solid var(--color-status-danger-border)',
+                  padding: '3px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '11px',
+                  fontWeight: 600
+                }}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', border: '1.5px solid var(--color-status-danger-solid)' }} />
+                <span>Absent</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => handleToggleAttendance(e, w)}
+              className="btn btn-ghost btn-sm btn-icon-only"
+              title={isPresent ? 'Click to mark Absent' : 'Click to mark Present'}
+              style={{ padding: '2px 4px', height: '24px', width: '24px' }}
+            >
+              {isPresent ? (
+                <UserX size={13} style={{ color: 'var(--color-text-muted)' }} />
+              ) : (
+                <UserCheck size={13} style={{ color: 'var(--color-status-success-solid)' }} />
+              )}
+            </button>
+          </div>
+        );
+      }
     },
     {
-      header: 'Karigar Name',
+      header: 'Karigar Name & Code',
       accessor: 'name',
       sortable: true,
       render: (w) => (
         <div>
           <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{w.name}</div>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{w.mobile}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <span className="mono-code" style={{ fontSize: '11px' }}>{w.workerId}</span>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>• {w.mobile}</span>
+          </div>
         </div>
       )
     },
     {
-      header: 'Skill & Trade',
+      header: 'Skill Profile',
       accessor: 'skill',
       sortable: true,
       render: (w) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{w.skill}</div>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{w.department}</div>
+          <span
+            style={{
+              display: 'inline-block',
+              backgroundColor: 'var(--color-status-info-bg)',
+              color: 'var(--color-status-info-text)',
+              border: '1px solid var(--color-status-info-border)',
+              padding: '2px 6px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '11px',
+              fontWeight: 600
+            }}
+          >
+            {w.skill}
+          </span>
+          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
+            {w.department}
+          </div>
         </div>
       )
     },
     {
-      header: 'Shift',
+      header: 'Assigned Shift',
       accessor: 'shift',
       width: '130px',
-      sortable: true
+      sortable: true,
+      render: (w) => (
+        <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+          {w.shift || 'Shift A (8:00 AM)'}
+        </span>
+      )
     },
     {
-      header: 'Wage / Salary',
+      header: 'Compensation',
       accessor: 'salary',
       align: 'right',
       sortable: true,
@@ -96,7 +219,7 @@ export const WorkersPage: React.FC = () => {
       )
     },
     {
-      header: 'Status',
+      header: 'Employment',
       accessor: 'status',
       width: '110px',
       align: 'center',
@@ -109,7 +232,7 @@ export const WorkersPage: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <PageHeader
         title="Workers & Karigar"
-        description="Manage factory floor technicians, machine operators, skill profiles, attendance, and wage payments."
+        description="Manage factory floor technicians, machine operators, daily attendance, skill profiles, and compensation."
         breadcrumbs={[
           { label: 'Workers / Karigar' }
         ]}
@@ -124,30 +247,36 @@ export const WorkersPage: React.FC = () => {
         }
       />
 
-      {/* Summary KPI Strip */}
+      {/* Attendance & Workforce Headcount Strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        <div className="card" style={{ padding: '12px 16px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Karigars</div>
-          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>{workers.length}</div>
-        </div>
-        <div className="card" style={{ padding: '12px 16px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active On Floor</div>
-          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px', color: 'var(--color-status-success-solid)' }}>
-            {workers.filter(w => w.status === 'Active').length}
-          </div>
-        </div>
-        <div className="card" style={{ padding: '12px 16px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>CNC / VMC Specialists</div>
-          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px', color: 'var(--color-brand-primary)' }}>
-            {workers.filter(w => w.skill.includes('CNC') || w.skill.includes('VMC')).length}
-          </div>
-        </div>
-        <div className="card" style={{ padding: '12px 16px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Wage Commitment</div>
-          <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, marginTop: '2px' }}>
-            ₹{workers.reduce((sum, w) => sum + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary), 0).toLocaleString('en-IN')}
-          </div>
-        </div>
+        <SummaryCard
+          title="Floor Present Today"
+          value={`${presentCount} Operators`}
+          subtitle={`${activeCount > 0 ? Math.round((presentCount / activeCount) * 100) : 0}% floor attendance rate`}
+          icon={<UserCheck size={18} />}
+          statusTag={{ label: `${presentCount} Present`, variant: 'success' }}
+        />
+        <SummaryCard
+          title="Absent Today"
+          value={`${absentCount} Workers`}
+          subtitle="Unscheduled floor absence"
+          icon={<UserX size={18} />}
+          statusTag={{ label: `${absentCount} Absent`, variant: absentCount > 0 ? 'danger' : 'neutral' }}
+        />
+        <SummaryCard
+          title="Approved Leave"
+          value={`${onLeaveCount} Karigars`}
+          subtitle="Casual / Medical leaves"
+          icon={<Clock size={18} />}
+          statusTag={{ label: `${onLeaveCount} On Leave`, variant: 'warning' }}
+        />
+        <SummaryCard
+          title="Total Workforce"
+          value={`${workers.length} Total`}
+          subtitle={`${activeCount} active on payroll`}
+          icon={<Users size={18} />}
+          statusTag={{ label: `${activeCount} Active`, variant: 'info' }}
+        />
       </div>
 
       {/* Data Table */}

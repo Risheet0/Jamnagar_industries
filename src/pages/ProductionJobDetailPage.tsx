@@ -15,9 +15,7 @@ import {
   User,
   Printer,
   Plus,
-  ShieldCheck,
-  CheckCircle2,
-  FileCheck2
+  ShieldCheck
 } from 'lucide-react';
 
 interface ProductionJobDetailPageProps {
@@ -57,7 +55,39 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
     i => i.jobId === job.id || i.jobNumber === job.jobNumber
   );
 
-  const percent = Math.round((job.producedQuantity / job.requiredQuantity) * 100);
+  const percent = Math.round((job.producedQuantity / Math.max(1, job.requiredQuantity)) * 100);
+
+  // Pace tracking calculation for detail page
+  let paceBarColor = 'var(--color-brand-primary)';
+  let paceStatusText = `${percent}% Produced`;
+  if (job.status === 'Completed' || percent >= 100) {
+    paceBarColor = 'var(--color-status-success-solid)';
+    paceStatusText = 'Target Completed';
+  } else if (job.status === 'Delayed') {
+    paceBarColor = 'var(--color-status-danger-solid)';
+    paceStatusText = 'Behind Schedule (Delayed)';
+  } else {
+    const start = new Date(job.date).getTime();
+    const due = new Date(job.dueDate).getTime();
+    const now = Date.now();
+    const totalDuration = Math.max(86400000, due - start);
+    const elapsed = Math.min(totalDuration, Math.max(0, now - start));
+    const elapsedPct = Math.round((elapsed / totalDuration) * 100);
+
+    if (elapsedPct > 50 && percent < elapsedPct * 0.6) {
+      paceBarColor = 'var(--color-status-danger-solid)';
+      paceStatusText = '⚠️ Behind Expected Pace';
+    } else if (elapsedPct > 30 && percent < elapsedPct * 0.8) {
+      paceBarColor = 'var(--color-status-warning-solid)';
+      paceStatusText = '⚡ Caution: Behind Timeline';
+    }
+  }
+
+  const borderAccentColor = (job.priority === 'Critical' || job.status === 'Delayed')
+    ? 'var(--color-status-danger-solid)'
+    : job.priority === 'High'
+    ? 'var(--color-status-warning-solid)'
+    : undefined;
 
   const handleLogProductionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +145,16 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
           { label: 'Job Cards', path: '/production/jobs' },
           { label: job.jobNumber }
         ]}
-        badge={<StatusBadge status={job.status} />}
+        badge={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <StatusBadge status={job.status} icon={true} />
+            <StatusBadge
+              status={job.priority}
+              customLabel={`${job.priority} Priority`}
+              icon={true}
+            />
+          </div>
+        }
         actions={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button
@@ -126,80 +165,45 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
               Back to Jobs
             </Button>
             <Button
-              variant="primary"
-              icon={<Plus size={14} />}
-              onClick={() => setIsLogModalOpen(true)}
-            >
-              Log Shift Output
-            </Button>
-            <Button
-              variant="outline"
+              variant="secondary"
               icon={<Printer size={14} />}
               onClick={() => window.print()}
             >
               Print Route Card
             </Button>
+            <Button
+              variant="primary"
+              icon={<Plus size={14} />}
+              onClick={() => setIsLogModalOpen(true)}
+            >
+              Log Production
+            </Button>
           </div>
         }
       />
 
-      {/* Completion Banner if Job is Finished */}
-      {job.status === 'Completed' && (
-        <div
-          style={{
-            padding: '14px 18px',
-            backgroundColor: 'var(--color-status-success-bg)',
-            border: '1px solid var(--color-status-success-border)',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <CheckCircle2 size={20} style={{ color: 'var(--color-status-success-solid)' }} />
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--color-status-success-text)', fontSize: '14px' }}>
-                Batch Run Completed ({job.producedQuantity} / {job.requiredQuantity} pcs)
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-status-success-text)', opacity: 0.9, marginTop: '2px' }}>
-                All required component pieces machined. Ready for quality certificate clearance or dispatch.
-              </div>
-            </div>
-          </div>
-          <Button
-            variant="success"
-            size="sm"
-            icon={<FileCheck2 size={14} />}
-            onClick={() => navigate('/quality')}
-          >
-            Log Final QC Inspection
-          </Button>
-        </div>
-      )}
-
-      {/* Progress Metric Bar */}
-      <div className="card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '12px' }}>
+      {/* Production Progress Hero Banner */}
+      <div className="card" style={{
+        padding: '20px',
+        borderLeft: borderAccentColor ? `6px solid ${borderAccentColor}` : '1px solid var(--color-border-subtle)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
-              Batch Production Completion
-            </div>
-            <div className="tabular-nums" style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-              {job.producedQuantity.toLocaleString('en-IN')} <span style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 400 }}>/ {job.requiredQuantity.toLocaleString('en-IN')} pcs ({percent}%)</span>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Batch Target Progress</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
+              <span className="tabular-nums">{job.producedQuantity.toLocaleString('en-IN')}</span> / <span className="tabular-nums">{job.requiredQuantity.toLocaleString('en-IN')} pcs</span>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '10px' }}>({paceStatusText})</span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '24px', textAlign: 'right' }}>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Rejections / Scrap</div>
-              <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: job.rejectedQuantity > 0 ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Scrap / Rejected</div>
+              <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: job.rejectedQuantity > 0 ? 'var(--color-status-danger-solid)' : 'var(--color-text-muted)', marginTop: '2px' }}>
                 {job.rejectedQuantity} pcs
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Due Date</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Target Due Date</div>
               <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>
                 {job.dueDate}
               </div>
@@ -208,7 +212,7 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
         </div>
 
         <div style={{ height: '10px', backgroundColor: 'var(--color-bg-muted)', borderRadius: '5px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${Math.min(100, percent)}%`, backgroundColor: percent >= 100 ? 'var(--color-status-success-solid)' : 'var(--color-brand-primary)' }} />
+          <div style={{ height: '100%', width: `${Math.min(100, percent)}%`, backgroundColor: paceBarColor, transition: 'width 0.4s ease' }} />
         </div>
       </div>
 
@@ -235,11 +239,9 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
               <div style={{ marginTop: '2px' }}>{job.date}</div>
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Priority Flag</div>
-              <div style={{ marginTop: '2px' }}>
-                <span className={`status-badge ${job.priority === 'Critical' ? 'status-badge-danger' : job.priority === 'High' ? 'status-badge-warning' : 'status-badge-neutral'}`}>
-                  {job.priority} Priority
-                </span>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Priority Level</div>
+              <div style={{ marginTop: '4px' }}>
+                <StatusBadge status={job.priority} customLabel={`${job.priority} Priority`} icon={true} />
               </div>
             </div>
             <div>

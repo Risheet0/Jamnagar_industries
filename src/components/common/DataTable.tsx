@@ -16,6 +16,7 @@ interface DataTableProps<T> {
   onAddClick?: () => void;
   addLabel?: string;
   toolbarExtra?: React.ReactNode;
+  rowBorderAccent?: (row: T) => string | undefined;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -31,7 +32,8 @@ export function DataTable<T extends Record<string, any>>({
   emptySubtitle = 'Try modifying your search or add a new record.',
   onAddClick,
   addLabel = 'Add Record',
-  toolbarExtra
+  toolbarExtra,
+  rowBorderAccent
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -205,57 +207,62 @@ export function DataTable<T extends Record<string, any>>({
           </thead>
           <tbody>
             {paginatedData.length > 0 ? (
-              paginatedData.map((row, rowIdx) => (
-                <tr
-                  key={getKey(row, rowIdx)}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  style={{
-                    borderBottom: '1px solid var(--color-border-subtle)',
-                    cursor: onRowClick ? 'pointer' : 'default',
-                    backgroundColor: rowIdx % 2 === 0 ? 'var(--color-bg-surface)' : 'rgba(248, 250, 252, 0.6)',
-                    transition: 'background-color 0.1s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = rowIdx % 2 === 0 ? 'var(--color-bg-surface)' : 'rgba(248, 250, 252, 0.6)'}
-                >
-                  {columns.map((col, colIdx) => {
-                    const cellKey = col.id || (typeof col.accessor === 'string' ? col.accessor : `cell-${colIdx}`);
-                    let cellContent: React.ReactNode = null;
+              paginatedData.map((row, rowIdx) => {
+                const accent = rowBorderAccent ? rowBorderAccent(row) : undefined;
 
-                    if (col.render) {
-                      cellContent = col.render(row);
-                    } else if (col.accessor) {
-                      cellContent = row[col.accessor];
-                    }
+                return (
+                  <tr
+                    key={getKey(row, rowIdx)}
+                    onClick={() => onRowClick && onRowClick(row)}
+                    style={{
+                      borderBottom: '1px solid var(--color-border-subtle)',
+                      borderLeft: accent ? `4px solid ${accent}` : '4px solid transparent',
+                      cursor: onRowClick ? 'pointer' : 'default',
+                      backgroundColor: rowIdx % 2 === 0 ? 'var(--color-bg-surface)' : 'rgba(248, 250, 252, 0.6)',
+                      transition: 'background-color 0.1s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = rowIdx % 2 === 0 ? 'var(--color-bg-surface)' : 'rgba(248, 250, 252, 0.6)'}
+                  >
+                    {columns.map((col, colIdx) => {
+                      const cellKey = col.id || (typeof col.accessor === 'string' ? col.accessor : `cell-${colIdx}`);
+                      let cellContent: React.ReactNode = null;
 
-                    return (
+                      if (col.render) {
+                        cellContent = col.render(row);
+                      } else if (col.accessor) {
+                        cellContent = row[col.accessor];
+                      }
+
+                      return (
+                        <td
+                          key={cellKey}
+                          style={{
+                            padding: '10px 14px',
+                            color: 'var(--color-text-primary)',
+                            textAlign: col.align || 'left',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {cellContent}
+                        </td>
+                      );
+                    })}
+                    {actions && (
                       <td
-                        key={cellKey}
                         style={{
-                          padding: '10px 14px',
-                          color: 'var(--color-text-primary)',
-                          textAlign: col.align || 'left',
+                          padding: '8px 14px',
+                          textAlign: 'right',
                           whiteSpace: 'nowrap'
                         }}
+                        onClick={e => e.stopPropagation()}
                       >
-                        {cellContent}
+                        {actions(row)}
                       </td>
-                    );
-                  })}
-                  {actions && (
-                    <td
-                      style={{
-                        padding: '8px 14px',
-                        textAlign: 'right',
-                        whiteSpace: 'nowrap'
-                      }}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {actions(row)}
-                    </td>
-                  )}
-                </tr>
-              ))
+                    )}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={columns.length + (actions ? 1 : 0)} style={{ padding: '48px 24px', textAlign: 'center' }}>

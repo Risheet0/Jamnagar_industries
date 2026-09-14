@@ -81,12 +81,21 @@ export const ProductionJobsPage: React.FC = () => {
       render: (j) => <span className="tabular-nums" style={{ color: j.rejectedQuantity > 0 ? 'var(--color-status-danger-solid)' : 'var(--color-text-muted)' }}>{j.rejectedQuantity}</span>
     },
     {
-      header: 'Status',
+      header: 'Status & Priority',
       accessor: 'status',
-      width: '130px',
-      align: 'center',
+      width: '180px',
       sortable: true,
-      render: (j) => <StatusBadge status={j.status} size="sm" />
+      render: (j) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'nowrap' }}>
+          <StatusBadge status={j.status} size="sm" />
+          <StatusBadge
+            status={j.priority}
+            size="sm"
+            showDot={false}
+            style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 600 }}
+          />
+        </div>
+      )
     }
   ];
 
@@ -124,6 +133,11 @@ export const ProductionJobsPage: React.FC = () => {
         columns={columns}
         searchPlaceholder="Search jobs by number, customer, product, machine..."
         onRowClick={(row) => navigate(`/production/jobs/${row.id}`)}
+        rowBorderAccent={(j) => {
+          if (j.priority === 'Critical' || j.status === 'Delayed') return 'var(--color-status-danger-solid)';
+          if (j.priority === 'High') return 'var(--color-status-warning-solid)';
+          return undefined;
+        }}
         toolbarExtra={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Status Filter:</span>

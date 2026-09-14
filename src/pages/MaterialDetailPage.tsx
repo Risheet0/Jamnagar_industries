@@ -126,30 +126,62 @@ export const MaterialDetailPage: React.FC<MaterialDetailPageProps> = ({ id }) =>
             <div className="card-header">
               <div className="card-title">
                 <Boxes size={16} style={{ color: 'var(--color-brand-accent)' }} />
-                <span>Inventory Balance & Valuation</span>
+                <span>Inventory Balance & Stock Health</span>
               </div>
+              <StatusBadge status={material.status} />
             </div>
-            <div className="card-body">
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Current Balance</div>
-                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, color: material.currentStock <= material.minimumStock ? 'var(--color-status-warning-solid)' : 'var(--color-text-primary)', marginTop: '2px' }}>
-                    {material.currentStock} {material.unit}
+                  <div className="tabular-nums" style={{
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: material.currentStock <= material.minimumStock ? 'var(--color-status-danger-solid)' : material.currentStock <= material.minimumStock * 1.2 ? 'var(--color-status-warning-solid)' : 'var(--color-status-success-solid)',
+                    marginTop: '2px'
+                  }}>
+                    {material.currentStock.toLocaleString('en-IN')} {material.unit}
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Minimum Safety Limit</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Min Reorder Threshold</div>
                   <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-status-warning-solid)', marginTop: '2px' }}>
-                    {material.minimumStock} {material.unit}
+                    {material.minimumStock.toLocaleString('en-IN')} {material.unit}
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Estimated Valuation</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Suggested Restock Qty</div>
                   <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-brand-primary)', marginTop: '2px' }}>
-                    ₹{(material.currentStock * material.unitPrice).toLocaleString('en-IN')}
+                    {material.reorderQuantity || 300} {material.unit}
                   </div>
                 </div>
               </div>
+
+              {/* Large Visual Stock Level Bar */}
+              {(() => {
+                const min = Math.max(1, material.minimumStock);
+                const pct = Math.min(100, Math.max(4, Math.round((material.currentStock / (min * 2)) * 100)));
+                const isRed = material.currentStock <= min;
+                const isAmber = !isRed && material.currentStock <= min * 1.2;
+                const barColor = isRed ? 'var(--color-status-danger-solid)' : isAmber ? 'var(--color-status-warning-solid)' : 'var(--color-status-success-solid)';
+                const barBg = isRed ? 'var(--color-status-danger-bg)' : isAmber ? 'var(--color-status-warning-bg)' : 'var(--color-status-success-bg)';
+
+                return (
+                  <div style={{ padding: '12px 14px', backgroundColor: barBg, border: `1px solid ${barColor}33`, borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: barColor }}>
+                        {isRed ? '⚠️ Critical Stock Level — Reorder Immediately' : isAmber ? '⚡ Warning: Approaching Minimum Safety Stock' : '✓ Stock Health: Adequate Buffer Available'}
+                      </span>
+                      <span className="tabular-nums" style={{ fontSize: '12px', fontWeight: 700, color: barColor }}>
+                        {Math.round((material.currentStock / min) * 100)}% of Min Safety Stock
+                      </span>
+                    </div>
+                    <div style={{ height: '8px', backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, backgroundColor: barColor, borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
