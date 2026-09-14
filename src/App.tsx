@@ -14,8 +14,9 @@ import { DashboardPage } from './pages/DashboardPage';
 import { WorkersPage } from './pages/WorkersPage';
 import { WorkerAddPage } from './pages/WorkerAddPage';
 import { WorkerDetailPage } from './pages/WorkerDetailPage';
-import { AttendancePage } from './pages/AttendancePage';
+import { DailyAttendanceDetailPage } from './pages/DailyAttendanceDetailPage';
 import { WorkerAttendanceCalendarPage } from './pages/WorkerAttendanceCalendarPage';
+import { getTodayDateString } from './context/AttendanceContext';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { MaterialAddPage } from './pages/MaterialAddPage';
 import { MaterialDetailPage } from './pages/MaterialDetailPage';
@@ -56,7 +57,11 @@ const AppRouter: React.FC = () => {
 
     // 3. Attendance routes
     if (currentPath === '/attendance') {
-      return <AttendancePage />;
+      return <DailyAttendanceDetailPage date={getTodayDateString()} />;
+    }
+    if (currentPath.startsWith('/attendance/day/')) {
+      const date = currentPath.split('/')[3]; // YYYY-MM-DD
+      return <DailyAttendanceDetailPage date={date} />;
     }
     if (currentPath.startsWith('/attendance/')) {
       const id = currentPath.split('/')[2];

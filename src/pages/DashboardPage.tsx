@@ -220,7 +220,7 @@ export const DashboardPage: React.FC = () => {
                 subtitle={`${presentWorkers} of ${activeWorkers} active present`}
                 icon={<Users size={18} />}
                 statusTag={{ label: 'Shift Gap', variant: 'danger' }}
-                onClick={() => navigate('/workers')}
+                onClick={() => navigate(`/attendance/day/${todayStr}`)}
               />
             )}
 

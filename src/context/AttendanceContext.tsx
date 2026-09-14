@@ -12,6 +12,16 @@ interface AttendanceSummary {
   attendancePercent: number;
 }
 
+export interface DaySummary {
+  present: number;
+  absent: number;
+  halfDay: number;
+  onLeave: number;
+  holiday: number;
+  notMarked: number;
+  totalWorkers: number;
+}
+
 interface AttendanceContextType {
   records: AttendanceRecord[];
   markAttendance: (
@@ -23,8 +33,10 @@ interface AttendanceContextType {
   bulkMarkAttendance: (workerIds: string[], date: string, status: AttendanceStatus) => void;
   deleteAttendanceRecord: (workerId: string, date: string) => void;
   getAttendanceForDate: (workerId: string, date: string) => AttendanceRecord | undefined;
+  getAllForDate: (date: string) => AttendanceRecord[];
   getAttendanceForMonth: (workerId: string, year: number, month: number) => AttendanceRecord[];
   getMonthSummary: (workerId: string, year: number, month: number) => AttendanceSummary;
+  getDaySummary: (date: string, activeWorkers?: Worker[]) => DaySummary;
   getPresentCountForDate: (date?: string) => number;
   getAbsentCountForDate: (date?: string, activeWorkers?: Worker[]) => number;
   getStatusBreakdownForDate: (date: string, activeWorkers: Worker[]) => {
@@ -238,6 +250,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [records]
   );
 
+  const getAllForDate = useCallback(
+    (date: string): AttendanceRecord[] => {
+      return records.filter(r => r.date === date);
+    },
+    [records]
+  );
+
   const getAttendanceForMonth = useCallback(
     (workerId: string, year: number, month: number): AttendanceRecord[] => {
       const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
@@ -285,6 +304,43 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       };
     },
     [getAttendanceForMonth]
+  );
+
+  const getDaySummary = useCallback(
+    (date: string, activeWorkers: Worker[] = []): DaySummary => {
+      const activeIds = activeWorkers.map(w => w.workerId || w.id);
+      const dateRecords = records.filter(
+        r => r.date === date && (activeIds.length === 0 || activeIds.includes(r.workerId))
+      );
+
+      let present = 0;
+      let absent = 0;
+      let halfDay = 0;
+      let onLeave = 0;
+      let holiday = 0;
+
+      dateRecords.forEach(r => {
+        if (r.status === 'Present') present++;
+        else if (r.status === 'Absent') absent++;
+        else if (r.status === 'Half Day') halfDay++;
+        else if (r.status === 'On Leave') onLeave++;
+        else if (r.status === 'Holiday') holiday++;
+      });
+
+      const totalWorkers = activeWorkers.length > 0 ? activeWorkers.length : dateRecords.length;
+      const notMarked = Math.max(0, totalWorkers - dateRecords.length);
+
+      return {
+        present,
+        absent,
+        halfDay,
+        onLeave,
+        holiday,
+        notMarked,
+        totalWorkers
+      };
+    },
+    [records]
   );
 
   const getPresentCountForDate = useCallback(
@@ -352,8 +408,10 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         bulkMarkAttendance,
         deleteAttendanceRecord,
         getAttendanceForDate,
+        getAllForDate,
         getAttendanceForMonth,
         getMonthSummary,
+        getDaySummary,
         getPresentCountForDate,
         getAbsentCountForDate,
         getStatusBreakdownForDate

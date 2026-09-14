@@ -3,13 +3,10 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCard } from '../components/common/SummaryCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
-import { Modal } from '../components/common/Modal';
-import { FormField } from '../components/common/FormField';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
-import { useToast } from '../context/ToastContext';
-import { AttendanceStatus, AttendanceRecord } from '../types';
+import { AttendanceRecord } from '../types';
 import {
   Calendar,
   CalendarCheck,
@@ -22,7 +19,7 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
-  Trash2
+  ExternalLink
 } from 'lucide-react';
 
 interface WorkerAttendanceCalendarPageProps {
@@ -41,12 +38,9 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
   const { getWorker, workers } = useWorkers();
   const {
     records,
-    markAttendance,
-    deleteAttendanceRecord,
     getAttendanceForDate,
     getMonthSummary
   } = useAttendance();
-  const { showToast } = useToast();
 
   // Extract worker ID from route if not directly provided as prop e.g. /attendance/WRK-001
   const pathParts = currentPath.split('/');
@@ -60,14 +54,6 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
   // Current calendar viewing month and year
   const [currentYear, setCurrentYear] = useState<number>(todayDateObj.getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(todayDateObj.getMonth() + 1); // 1-indexed (1..12)
-
-  // Edit modal state
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [modalDate, setModalDate] = useState<string>(todayStr);
-  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatus>('Present');
-  const [checkInTime, setCheckInTime] = useState<string>('08:15 AM');
-  const [checkOutTime, setCheckOutTime] = useState<string>('05:30 PM');
-  const [notes, setNotes] = useState<string>('');
 
   // Previous Month
   const handlePrevMonth = () => {
@@ -153,52 +139,6 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
     }
     return getMonthSummary(worker.workerId || worker.id, currentYear, currentMonth);
   }, [worker, currentYear, currentMonth, getMonthSummary, records]);
-
-  // Open Edit Modal for a specific date cell
-  const openDayModal = (dateStr: string) => {
-    const rec = getAttendanceForDate(worker ? (worker.workerId || worker.id) : resolvedWorkerId, dateStr);
-    setModalDate(dateStr);
-    if (rec) {
-      setSelectedStatus(rec.status);
-      setCheckInTime(rec.checkInTime || (rec.status === 'Present' || rec.status === 'Half Day' ? '08:15 AM' : ''));
-      setCheckOutTime(rec.checkOutTime || (rec.status === 'Present' ? '05:30 PM' : rec.status === 'Half Day' ? '01:30 PM' : ''));
-      setNotes(rec.notes || '');
-    } else {
-      setSelectedStatus('Present');
-      setCheckInTime('08:15 AM');
-      setCheckOutTime('05:30 PM');
-      setNotes('');
-    }
-    setIsModalOpen(true);
-  };
-
-  // Save Modal Attendance
-  const handleSaveModal = () => {
-    if (!worker) return;
-    markAttendance(worker.workerId || worker.id, modalDate, selectedStatus, {
-      checkInTime: selectedStatus === 'Present' || selectedStatus === 'Half Day' ? checkInTime : undefined,
-      checkOutTime: selectedStatus === 'Present' || selectedStatus === 'Half Day' ? checkOutTime : undefined,
-      notes: notes.trim() || undefined
-    });
-    setIsModalOpen(false);
-    showToast({
-      title: 'Attendance Saved',
-      message: `Marked ${worker.name} as ${selectedStatus} on ${modalDate}.`,
-      type: 'success'
-    });
-  };
-
-  // Clear Record
-  const handleClearModal = () => {
-    if (!worker) return;
-    deleteAttendanceRecord(worker.workerId || worker.id, modalDate);
-    setIsModalOpen(false);
-    showToast({
-      title: 'Attendance Cleared',
-      message: `Removed attendance record for ${modalDate}.`,
-      type: 'info'
-    });
-  };
 
   if (!worker) {
     return (
@@ -298,8 +238,9 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           )}
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-          Click any calendar day to log or update attendance
+        <div style={{ fontSize: '12px', color: 'var(--color-brand-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <ExternalLink size={13} />
+          <span>Click any date to view the full plant daily attendance page</span>
         </div>
       </div>
 
@@ -445,10 +386,13 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
               bgColor = 'rgba(248, 250, 252, 0.6)';
             }
 
+            const cellTooltip = `${item.dateStr}: ${status || 'Not marked'}${rec?.checkInTime ? ` (${rec.checkInTime})` : ''} — Click to view full daily detail`;
+
             return (
               <div
                 key={`day-${item.dayNumber}`}
-                onClick={() => openDayModal(item.dateStr!)}
+                onClick={() => item.dateStr && navigate(`/attendance/day/${item.dateStr}`)}
+                title={cellTooltip}
                 style={{
                   minHeight: '92px',
                   padding: '8px 10px',
@@ -465,11 +409,13 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.06)';
+                  e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.borderColor = 'var(--color-brand-primary)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = item.isToday ? '0 0 0 1px var(--color-brand-primary)' : 'none';
+                  e.currentTarget.style.borderColor = item.isToday ? 'var(--color-brand-primary)' : borderColor;
                 }}
               >
                 {/* Top: Day Number & Today Tag */}
@@ -527,7 +473,6 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                             marginTop: '2px',
                             fontStyle: 'italic'
                           }}
-                          title={rec.notes}
                         >
                           {rec.notes}
                         </div>
@@ -584,138 +529,6 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           </div>
         </div>
       </div>
-
-      {/* Edit / Log Day Attendance Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={`Log Attendance — ${modalDate}`}
-        footer={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <Button
-              variant="outline"
-              icon={<Trash2 size={13} />}
-              onClick={handleClearModal}
-              style={{ color: 'var(--color-status-danger-solid)' }}
-            >
-              Clear Record
-            </Button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" icon={<CheckCircle2 size={14} />} onClick={handleSaveModal}>
-                Save Attendance
-              </Button>
-            </div>
-          </div>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Worker Info Snippet */}
-          <div
-            style={{
-              padding: '10px 14px',
-              backgroundColor: 'var(--color-bg-subtle)',
-              borderRadius: 'var(--radius-md)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{worker.name}</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                {worker.workerId} • {worker.skill}
-              </div>
-            </div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-brand-primary)' }}>
-              {new Date(modalDate + 'T00:00:00').toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              })}
-            </div>
-          </div>
-
-          {/* Status Selector */}
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
-              Attendance Status *
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-              {(['Present', 'Half Day', 'Absent', 'On Leave', 'Holiday'] as AttendanceStatus[]).map(st => {
-                const isSelected = selectedStatus === st;
-                let activeColor = 'var(--color-brand-primary)';
-                if (st === 'Present') activeColor = 'var(--color-status-success-solid)';
-                else if (st === 'Half Day') activeColor = 'var(--color-status-warning-solid)';
-                else if (st === 'Absent') activeColor = 'var(--color-status-danger-solid)';
-                else if (st === 'On Leave') activeColor = 'var(--color-status-info-solid)';
-                else if (st === 'Holiday') activeColor = 'var(--color-text-secondary)';
-
-                return (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setSelectedStatus(st)}
-                    style={{
-                      padding: '8px 4px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      borderRadius: 'var(--radius-md)',
-                      border: isSelected ? `2px solid ${activeColor}` : '1px solid var(--color-border-subtle)',
-                      backgroundColor: isSelected ? activeColor : 'var(--color-bg-subtle)',
-                      color: isSelected ? '#ffffff' : 'var(--color-text-primary)',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    {st}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Timings (if Present or Half Day) */}
-          {(selectedStatus === 'Present' || selectedStatus === 'Half Day') && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <FormField label="Check-In Time" required>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="08:15 AM"
-                  value={checkInTime}
-                  onChange={e => setCheckInTime(e.target.value)}
-                />
-              </FormField>
-
-              <FormField label="Check-Out Time">
-                <input
-                  type="text"
-                  className="input"
-                  placeholder={selectedStatus === 'Half Day' ? '01:30 PM' : '05:30 PM'}
-                  value={checkOutTime}
-                  onChange={e => setCheckOutTime(e.target.value)}
-                />
-              </FormField>
-            </div>
-          )}
-
-          {/* Notes */}
-          <FormField label="Shift Remarks / Notes">
-            <textarea
-              className="textarea"
-              rows={2}
-              placeholder="e.g. Approved casual leave, late check-in due to transport..."
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Modal>
     </div>
   );
 };
