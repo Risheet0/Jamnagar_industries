@@ -7,7 +7,7 @@ import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduction } from '../context/ProductionContext';
 import { ProductionJob, TableColumn } from '../types';
-import { Factory, PlusCircle, Eye, Layers, CheckCircle2 } from 'lucide-react';
+import { Factory, PlusCircle, Eye, Layers, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export const ProductionPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
@@ -17,6 +17,14 @@ export const ProductionPage: React.FC = () => {
   const totalProduced = jobs.reduce((sum, j) => sum + j.producedQuantity, 0);
   const totalRejected = jobs.reduce((sum, j) => sum + j.rejectedQuantity, 0);
   const activeJobs = jobs.filter(j => j.status === 'In Production');
+  const delayedJobs = jobs.filter(j => j.status === 'Delayed');
+
+  // Active Floor Jobs snapshot: In Production, Delayed, Pending (max 10 rows)
+  const floorJobsSnapshot = jobs
+    .filter(j => j.status === 'In Production' || j.status === 'Delayed' || j.status === 'Pending')
+    .slice(0, 10);
+
+  const displayJobs = floorJobsSnapshot.length > 0 ? floorJobsSnapshot : jobs.slice(0, 10);
 
   const columns: TableColumn<ProductionJob>[] = [
     {
@@ -97,10 +105,11 @@ export const ProductionPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <PageHeader
-        title="Production & Shop Floor Control"
-        description="Real-time job card scheduling, machine station dispatch, shift output, and operator productivity."
+        title="Shop Floor Overview"
+        description="Real-time active machine station dispatch, batch progress, operator productivity, and floor throughput."
         breadcrumbs={[
-          { label: 'Production' }
+          { label: 'Production', path: '/production' },
+          { label: 'Shop Floor Overview' }
         ]}
         actions={
           <>
@@ -109,7 +118,7 @@ export const ProductionPage: React.FC = () => {
               icon={<Layers size={14} />}
               onClick={() => navigate('/production/jobs')}
             >
-              All Job Cards
+              All Job Cards ({jobs.length})
             </Button>
             <Button
               variant="primary"
@@ -125,9 +134,9 @@ export const ProductionPage: React.FC = () => {
       {/* KPI Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
         <SummaryCard
-          title="Active Jobs on Floor"
+          title="Active Floor Jobs"
           value={activeJobs.length}
-          subtitle="Running on CNC & VMCs"
+          subtitle={`${delayedJobs.length > 0 ? `${delayedJobs.length} delayed` : 'All stations on schedule'}`}
           icon={<Factory size={18} />}
         />
         <SummaryCard
@@ -139,9 +148,9 @@ export const ProductionPage: React.FC = () => {
         <SummaryCard
           title="Completed Output"
           value={`${totalProduced.toLocaleString('en-IN')} pcs`}
-          subtitle={`${Math.round((totalProduced / totalRequired) * 100)}% plant completion`}
+          subtitle={`${Math.round((totalProduced / Math.max(1, totalRequired)) * 100)}% plant completion`}
           icon={<CheckCircle2 size={18} />}
-          trend={{ value: `${Math.round((totalProduced / totalRequired) * 100)}%`, isPositive: true, label: 'completion' }}
+          trend={{ value: `${Math.round((totalProduced / Math.max(1, totalRequired)) * 100)}%`, isPositive: true, label: 'completion' }}
         />
         <SummaryCard
           title="Scrap / Rejection"
@@ -151,29 +160,48 @@ export const ProductionPage: React.FC = () => {
         />
       </div>
 
-      {/* Main Jobs Table */}
-      <DataTable
-        data={jobs}
-        columns={columns}
-        searchPlaceholder="Search job by #, customer, product, operator, machine..."
-        onRowClick={(row) => navigate(`/production/jobs/${row.id}`)}
-        actions={(row) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/production/jobs/${row.id}`);
-              }}
-              className="btn btn-ghost btn-sm btn-icon-only"
-              title="Open Job Card"
-            >
-              <Eye size={14} style={{ color: 'var(--color-brand-primary)' }} />
-            </button>
+      {/* Active Floor Snapshot Table */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              Active Floor Execution ({displayJobs.length} active jobs)
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Live progress for jobs currently on CNC Lathes and VMCs
+            </p>
           </div>
-        )}
-        onAddClick={() => openQuickAdd('job')}
-        addLabel="Create Job"
-      />
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<ArrowRight size={14} />}
+            onClick={() => navigate('/production/jobs')}
+          >
+            View Full Job Ledger ({jobs.length})
+          </Button>
+        </div>
+
+        <DataTable
+          data={displayJobs}
+          columns={columns}
+          searchPlaceholder="Search active floor jobs..."
+          onRowClick={(row) => navigate(`/production/jobs/${row.id}`)}
+          actions={(row) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/production/jobs/${row.id}`);
+                }}
+                className="btn btn-ghost btn-sm btn-icon-only"
+                title="Open Job Card"
+              >
+                <Eye size={14} style={{ color: 'var(--color-brand-primary)' }} />
+              </button>
+            </div>
+          )}
+        />
+      </div>
     </div>
   );
 };

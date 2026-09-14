@@ -4,12 +4,14 @@ import { FormField } from '../components/common/FormField';
 import { SelectField } from '../components/common/SelectField';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
+import { useMaterials } from '../context/MaterialsContext';
 import { useToast } from '../context/ToastContext';
 import { PackagePlus, ArrowLeft, Save } from 'lucide-react';
 
 export const MaterialAddPage: React.FC = () => {
   const { navigate } = useNavigation();
   const { showToast } = useToast();
+  const { addMaterial } = useMaterials();
   const [formData, setFormData] = useState({
     materialCode: '',
     materialName: '',
@@ -26,9 +28,26 @@ export const MaterialAddPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const created = addMaterial({
+      materialCode: formData.materialCode.trim() || `MAT-${String(Date.now()).slice(-3)}`,
+      materialName: formData.materialName,
+      type: formData.type as any,
+      grade: formData.grade || 'IS 319 Gr 1',
+      size: formData.size || 'Dia 25mm x 3000mm',
+      unit: formData.unit as any,
+      openingStock: Number(formData.openingStock) || 0,
+      currentStock: Number(formData.openingStock) || 0,
+      minimumStock: Number(formData.minimumStock) || 0,
+      reorderQuantity: 300,
+      unitPrice: Number(formData.unitPrice) || 0,
+      supplier: formData.supplier || 'Jamnagar Brass Syndicate Ltd.',
+      locationRack: formData.locationRack,
+      status: 'In Stock'
+    });
+
     showToast({
-      title: 'Material Registered (Mock)',
-      message: `${formData.materialName} added to inventory database.`,
+      title: 'Material Registered',
+      message: `${created.materialCode} added to inventory database.`,
       type: 'success'
     });
     navigate('/materials');
