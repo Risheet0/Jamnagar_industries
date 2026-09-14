@@ -251,6 +251,7 @@ html, body {
 /* Warning (Amber) */
 .status-badge-pending,
 .status-badge-on-leave,
+.status-badge-half-day,
 .status-badge-on-hold,
 .status-badge-low-stock,
 .status-badge-high,
@@ -262,6 +263,7 @@ html, body {
 }
 .status-badge-pending .status-badge-dot,
 .status-badge-on-leave .status-badge-dot,
+.status-badge-half-day .status-badge-dot,
 .status-badge-on-hold .status-badge-dot,
 .status-badge-low-stock .status-badge-dot,
 .status-badge-high .status-badge-dot,
@@ -335,6 +337,7 @@ html, body {
 /* Neutral (Gray) */
 .status-badge-discontinued,
 .status-badge-cancelled,
+.status-badge-holiday,
 .status-badge-normal,
 .status-badge-draft,
 .status-badge-neutral {
@@ -344,6 +347,7 @@ html, body {
 }
 .status-badge-discontinued .status-badge-dot,
 .status-badge-cancelled .status-badge-dot,
+.status-badge-holiday .status-badge-dot,
 .status-badge-normal .status-badge-dot,
 .status-badge-draft .status-badge-dot,
 .status-badge-neutral .status-badge-dot {

@@ -5,9 +5,21 @@ import { Button } from '../components/common/Button';
 import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
+import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
 import { useProduction } from '../context/ProductionContext';
 import { useToast } from '../context/ToastContext';
-import { ArrowLeft, User, IndianRupee, Layers, Edit3, UserCheck, UserX } from 'lucide-react';
+import {
+  ArrowLeft,
+  User,
+  IndianRupee,
+  Layers,
+  Edit3,
+  UserCheck,
+  UserX,
+  CalendarCheck,
+  CalendarDays,
+  ArrowRight
+} from 'lucide-react';
 
 interface WorkerDetailPageProps {
   id?: string;
@@ -15,7 +27,12 @@ interface WorkerDetailPageProps {
 
 export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const { currentPath, navigate } = useNavigation();
-  const { getWorker, workers, getTodayAttendance, toggleAttendance } = useWorkers();
+  const { getWorker, workers } = useWorkers();
+  const {
+    getAttendanceForDate,
+    markAttendance,
+    getMonthSummary
+  } = useAttendance();
   const { jobs } = useProduction();
   const { showToast } = useToast();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -37,8 +54,14 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
     );
   }
 
-  const todayAtt = getTodayAttendance(worker.workerId || worker.id);
-  const isPresent = todayAtt ? todayAtt.present : false;
+  const todayStr = getTodayDateString();
+  const todayAtt = getAttendanceForDate(worker.workerId || worker.id, todayStr);
+  const currentStatus = todayAtt?.status;
+  const isPresent = currentStatus === 'Present' || currentStatus === 'Half Day';
+
+  // Calculate current month's attendance
+  const now = new Date();
+  const monthSummary = getMonthSummary(worker.workerId || worker.id, now.getFullYear(), now.getMonth() + 1);
 
   const handleAttendanceToggle = () => {
     if (worker.status !== 'Active') {
@@ -49,12 +72,14 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
       });
       return;
     }
-    toggleAttendance(worker.workerId || worker.id);
-    const willBePresent = !isPresent;
+    const nextStatus = isPresent ? 'Absent' : 'Present';
+    markAttendance(worker.workerId || worker.id, todayStr, nextStatus, {
+      checkInTime: nextStatus === 'Present' ? '08:15 AM' : undefined
+    });
     showToast({
-      title: willBePresent ? 'Attendance Marked Present' : 'Attendance Marked Absent',
-      message: `${worker.name} is now marked ${willBePresent ? 'Present on shop floor' : 'Absent today'}.`,
-      type: willBePresent ? 'success' : 'info'
+      title: nextStatus === 'Present' ? 'Attendance Marked Present' : 'Attendance Marked Absent',
+      message: `${worker.name} is now marked ${nextStatus} for today (${todayStr}).`,
+      type: nextStatus === 'Present' ? 'success' : 'info'
     });
   };
 
@@ -74,10 +99,16 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
         badge={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <StatusBadge status={worker.status} />
-            {worker.status === 'Active' && (
+            {worker.status === 'Active' && currentStatus && (
               <StatusBadge
-                status={isPresent ? 'Present' : 'Absent'}
-                customLabel={isPresent ? `Present (${todayAtt?.checkInTime || '08:00 AM'})` : 'Absent Today'}
+                status={currentStatus}
+                customLabel={
+                  currentStatus === 'Present'
+                    ? `Present (${todayAtt?.checkInTime || '08:15 AM'})`
+                    : currentStatus === 'Half Day'
+                    ? `Half Day (${todayAtt?.checkInTime || '08:15 AM'})`
+                    : currentStatus
+                }
                 icon={true}
               />
             )}
@@ -91,6 +122,13 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
               onClick={() => navigate('/workers')}
             >
               Back to Workers
+            </Button>
+            <Button
+              variant="outline"
+              icon={<CalendarDays size={14} />}
+              onClick={() => navigate(`/attendance/${worker.workerId || worker.id}`)}
+            >
+              Attendance Calendar
             </Button>
             {worker.status === 'Active' && (
               <Button
@@ -167,8 +205,58 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
           </div>
         </div>
 
-        {/* Right Column: Salary & Assigned Production Jobs */}
+        {/* Right Column: Attendance Widget, Salary & Assigned Production Jobs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* This Month's Attendance Summary Widget */}
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title">
+                <CalendarCheck size={16} style={{ color: 'var(--color-brand-primary)' }} />
+                <span>This Month's Attendance Summary ({now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<ArrowRight size={13} />}
+                iconPosition="right"
+                onClick={() => navigate(`/attendance/${worker.workerId || worker.id}`)}
+              >
+                View Full Calendar
+              </Button>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                <div style={{ padding: '12px', backgroundColor: 'var(--color-status-success-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-status-success-border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--color-status-success-text)', textTransform: 'uppercase', fontWeight: 600 }}>Attendance Rate</div>
+                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-status-success-solid)', marginTop: '2px' }}>
+                    {monthSummary.attendancePercent}%
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Present Days</div>
+                  <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '2px' }}>
+                    {monthSummary.present} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-text-muted)' }}>Days</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Half Days</div>
+                  <div className="tabular-nums" style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-status-warning-solid)', marginTop: '2px' }}>
+                    {monthSummary.halfDay} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-text-muted)' }}>Days</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Absent / Leave</div>
+                  <div className="tabular-nums" style={{ fontSize: '16px', fontWeight: 700, color: monthSummary.absent > 0 ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)', marginTop: '2px' }}>
+                    {monthSummary.absent} Abs <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--color-text-muted)' }}>/ {monthSummary.onLeave} Lve</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Wage & Remuneration Card */}
           <div className="card">
             <div className="card-header">

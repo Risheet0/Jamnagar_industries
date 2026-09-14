@@ -33,12 +33,15 @@ export interface Worker {
   aadharNumber?: string;
 }
 
+export type AttendanceStatus = 'Present' | 'Absent' | 'Half Day' | 'On Leave' | 'Holiday';
+
 export interface AttendanceRecord {
   workerId: string;
-  date: string;          // YYYY-MM-DD
-  present: boolean;
-  checkInTime?: string;  // e.g. "08:15 AM"
-  notes?: string;        // e.g. "Half day", "Left early"
+  date: string;              // YYYY-MM-DD
+  status: AttendanceStatus;
+  checkInTime?: string;      // e.g. "08:15 AM" — only relevant for Present/Half Day
+  checkOutTime?: string;     // e.g. "05:30 PM"
+  notes?: string;            // e.g. "Casual Leave", "Left at 1 PM"
 }
 
 export type MaterialType = 'Brass Bar / Rod' | 'Stainless Steel' | 'Mild Steel' | 'Aluminum Alloy' | 'Cutting Tool' | 'Consumable / Oil' | 'Fastener / Hardware';

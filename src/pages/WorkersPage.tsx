@@ -9,20 +9,30 @@ import { Modal } from '../components/common/Modal';
 import { WorkerEditModal } from '../components/common/WorkerEditModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
+import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
 import { useToast } from '../context/ToastContext';
 import { Worker, TableColumn } from '../types';
-import { UserPlus, Eye, Trash2, Edit3, UserCheck, UserX, Clock, Users } from 'lucide-react';
+import {
+  UserPlus,
+  Eye,
+  Trash2,
+  Edit3,
+  UserCheck,
+  UserX,
+  Clock,
+  Users,
+  CalendarDays
+} from 'lucide-react';
 
 export const WorkersPage: React.FC = () => {
-  const { openQuickAdd } = useNavigation();
+  const { openQuickAdd, navigate } = useNavigation();
+  const { workers, deleteWorker } = useWorkers();
   const {
-    workers,
-    deleteWorker,
-    getTodayAttendance,
-    toggleAttendance,
-    getPresentCount,
-    getAbsentCount
-  } = useWorkers();
+    getAttendanceForDate,
+    markAttendance,
+    getPresentCountForDate,
+    getAbsentCountForDate
+  } = useAttendance();
   const { showToast } = useToast();
 
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -32,8 +42,9 @@ export const WorkersPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
 
-  const presentCount = getPresentCount();
-  const absentCount = getAbsentCount();
+  const todayStr = getTodayDateString();
+  const presentCount = getPresentCountForDate(todayStr);
+  const absentCount = getAbsentCountForDate(todayStr, workers);
   const onLeaveCount = workers.filter(w => w.status === 'On Leave').length;
   const activeCount = workers.filter(w => w.status === 'Active').length;
 
@@ -64,13 +75,18 @@ export const WorkersPage: React.FC = () => {
       });
       return;
     }
-    toggleAttendance(worker.workerId || worker.id);
-    const rec = getTodayAttendance(worker.workerId || worker.id);
-    const willBePresent = !(rec && rec.present);
+    const currentRec = getAttendanceForDate(worker.workerId || worker.id, todayStr);
+    const isPresent = currentRec?.status === 'Present' || currentRec?.status === 'Half Day';
+    const nextStatus = isPresent ? 'Absent' : 'Present';
+
+    markAttendance(worker.workerId || worker.id, todayStr, nextStatus, {
+      checkInTime: nextStatus === 'Present' ? '08:15 AM' : undefined
+    });
+
     showToast({
-      title: willBePresent ? 'Marked Present' : 'Marked Absent',
-      message: `${worker.name} marked ${willBePresent ? 'Present on shop floor' : 'Absent today'}.`,
-      type: willBePresent ? 'success' : 'info'
+      title: nextStatus === 'Present' ? 'Marked Present' : 'Marked Absent',
+      message: `${worker.name} marked ${nextStatus} for today (${todayStr}).`,
+      type: nextStatus === 'Present' ? 'success' : 'info'
     });
   };
 
@@ -82,7 +98,7 @@ export const WorkersPage: React.FC = () => {
     {
       header: "Today's Attendance",
       accessor: 'id',
-      width: '160px',
+      width: '180px',
       sortable: false,
       render: (w) => {
         if (w.status !== 'Active') {
@@ -93,61 +109,63 @@ export const WorkersPage: React.FC = () => {
           );
         }
 
-        const att = getTodayAttendance(w.workerId || w.id);
-        const isPresent = att ? att.present : false;
+        const att = getAttendanceForDate(w.workerId || w.id, todayStr);
+        const status = att?.status;
+        const isPresent = status === 'Present' || status === 'Half Day';
 
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isPresent ? (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  backgroundColor: 'var(--color-status-success-bg)',
-                  color: 'var(--color-status-success-text)',
-                  border: '1px solid var(--color-status-success-border)',
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '11px',
-                  fontWeight: 600
-                }}
-              >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-status-success-solid)' }} />
-                <span>Present</span>
-                {att?.checkInTime && <span style={{ fontSize: '10px', opacity: 0.85, marginLeft: '2px' }}>{att.checkInTime}</span>}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {status ? (
+              <StatusBadge
+                status={status}
+                customLabel={
+                  status === 'Present'
+                    ? `Present (${att?.checkInTime || '08:15 AM'})`
+                    : status === 'Half Day'
+                    ? `Half Day (${att?.checkInTime || '08:15 AM'})`
+                    : status
+                }
+                size="sm"
+                icon={true}
+              />
             ) : (
               <span
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  backgroundColor: 'var(--color-status-danger-bg)',
-                  color: 'var(--color-status-danger-text)',
-                  border: '1px solid var(--color-status-danger-border)',
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-full)',
                   fontSize: '11px',
-                  fontWeight: 600
+                  color: 'var(--color-status-warning-text)',
+                  backgroundColor: 'var(--color-status-warning-bg)',
+                  border: '1px solid var(--color-status-warning-border)',
+                  padding: '2px 6px',
+                  borderRadius: 'var(--radius-full)'
                 }}
               >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', border: '1.5px solid var(--color-status-danger-solid)' }} />
-                <span>Absent</span>
+                Pending
               </span>
             )}
             <button
               type="button"
               onClick={(e) => handleToggleAttendance(e, w)}
               className="btn btn-ghost btn-sm btn-icon-only"
-              title={isPresent ? 'Click to mark Absent' : 'Click to mark Present'}
-              style={{ padding: '2px 4px', height: '24px', width: '24px' }}
+              title={isPresent ? 'Click to toggle Absent' : 'Click to toggle Present'}
+              style={{ padding: '2px 4px', height: '22px', width: '22px' }}
             >
               {isPresent ? (
-                <UserX size={13} style={{ color: 'var(--color-text-muted)' }} />
+                <UserX size={12} style={{ color: 'var(--color-text-muted)' }} />
               ) : (
-                <UserCheck size={13} style={{ color: 'var(--color-status-success-solid)' }} />
+                <UserCheck size={12} style={{ color: 'var(--color-status-success-solid)' }} />
               )}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/attendance/${w.workerId || w.id}`);
+              }}
+              className="btn btn-ghost btn-sm btn-icon-only"
+              title="View Monthly Attendance Calendar"
+              style={{ padding: '2px 4px', height: '22px', width: '22px', color: 'var(--color-brand-primary)' }}
+            >
+              <CalendarDays size={12} />
             </button>
           </div>
         );

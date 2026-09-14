@@ -2,6 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard,
   Users,
+  CalendarCheck,
   Boxes,
   Cpu,
   Factory,
@@ -55,6 +56,13 @@ export const Sidebar: React.FC = () => {
       badge: activeWorkersCount,
       badgeVariant: 'neutral',
       matchPrefix: '/workers'
+    },
+    {
+      id: 'attendance',
+      label: 'Attendance',
+      path: '/attendance',
+      icon: <CalendarCheck size={19} />,
+      matchPrefix: '/attendance'
     },
     {
       id: 'materials',

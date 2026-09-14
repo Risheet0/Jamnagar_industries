@@ -26,6 +26,8 @@ export type StatusVariant =
   | 'Fail'
   | 'Present'
   | 'Absent'
+  | 'Half Day'
+  | 'Holiday'
   | 'In Stock'
   | 'Low Stock'
   | 'Out of Stock'
@@ -76,13 +78,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     if (['rejected', 'fail', 'absent', 'out-of-stock', 'delayed', 'critical', 'terminated', 'danger'].includes(s)) {
       return <XCircle size={iconSize} />;
     }
-    if (['pending', 'on-leave', 'on-hold', 'low-stock', 'high', 'warning', 'maintenance'].includes(s)) {
+    if (['pending', 'on-leave', 'half-day', 'on-hold', 'low-stock', 'high', 'warning', 'maintenance'].includes(s)) {
       return <AlertTriangle size={iconSize} />;
     }
     if (['in-production', 'quality-check', 'on-order', 'medium', 'info', 'in-progress'].includes(s)) {
       return <Clock size={iconSize} />;
     }
-    if (['sample-prototype', 'sample---prototype', 'purple'].includes(s)) {
+    if (['sample-prototype', 'sample---prototype', 'purple', 'holiday'].includes(s)) {
       return <Sparkles size={iconSize} />;
     }
     if (['inactive', 'discontinued', 'cancelled', 'normal', 'draft', 'neutral'].includes(s)) {

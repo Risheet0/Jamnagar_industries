@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
 import { WorkerProvider } from './context/WorkerContext';
+import { AttendanceProvider } from './context/AttendanceContext';
 import { MaterialsProvider } from './context/MaterialsContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { ProductionProvider } from './context/ProductionContext';
@@ -13,6 +14,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { WorkersPage } from './pages/WorkersPage';
 import { WorkerAddPage } from './pages/WorkerAddPage';
 import { WorkerDetailPage } from './pages/WorkerDetailPage';
+import { AttendancePage } from './pages/AttendancePage';
+import { WorkerAttendanceCalendarPage } from './pages/WorkerAttendanceCalendarPage';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { MaterialAddPage } from './pages/MaterialAddPage';
 import { MaterialDetailPage } from './pages/MaterialDetailPage';
@@ -51,7 +54,16 @@ const AppRouter: React.FC = () => {
       return <WorkerDetailPage id={id} />;
     }
 
-    // 3. Materials routes
+    // 3. Attendance routes
+    if (currentPath === '/attendance') {
+      return <AttendancePage />;
+    }
+    if (currentPath.startsWith('/attendance/')) {
+      const id = currentPath.split('/')[2];
+      return <WorkerAttendanceCalendarPage workerId={id} />;
+    }
+
+    // 4. Materials routes
     if (currentPath === '/materials') {
       return <MaterialsPage />;
     }
@@ -72,7 +84,7 @@ const AppRouter: React.FC = () => {
       return <MaterialDetailPage id={id} />;
     }
 
-    // 4. Products routes
+    // 5. Products routes
     if (currentPath === '/products') {
       return <ProductsPage />;
     }
@@ -84,7 +96,7 @@ const AppRouter: React.FC = () => {
       return <ProductDetailPage id={id} />;
     }
 
-    // 5. Production routes
+    // 6. Production routes
     if (currentPath === '/production') {
       return <ProductionPage />;
     }
@@ -99,17 +111,17 @@ const AppRouter: React.FC = () => {
       return <ProductionJobDetailPage id={id} />;
     }
 
-    // 6. Quality
+    // 7. Quality
     if (currentPath === '/quality') {
       return <QualityPage />;
     }
 
-    // 7. Reports
+    // 8. Reports
     if (currentPath === '/reports') {
       return <ReportsPage />;
     }
 
-    // 8. Settings
+    // 9. Settings
     if (currentPath === '/settings') {
       return <SettingsPage />;
     }
@@ -125,17 +137,19 @@ export function App() {
   return (
     <NavigationProvider>
       <WorkerProvider>
-        <MaterialsProvider>
-          <ProductsProvider>
-            <ProductionProvider>
-              <QualityProvider>
-                <ToastProvider>
-                  <AppRouter />
-                </ToastProvider>
-              </QualityProvider>
-            </ProductionProvider>
-          </ProductsProvider>
-        </MaterialsProvider>
+        <AttendanceProvider>
+          <MaterialsProvider>
+            <ProductsProvider>
+              <ProductionProvider>
+                <QualityProvider>
+                  <ToastProvider>
+                    <AppRouter />
+                  </ToastProvider>
+                </QualityProvider>
+              </ProductionProvider>
+            </ProductsProvider>
+          </MaterialsProvider>
+        </AttendanceProvider>
       </WorkerProvider>
     </NavigationProvider>
   );

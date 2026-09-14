@@ -5,6 +5,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
+import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { useProducts } from '../context/ProductsContext';
 import { useProduction } from '../context/ProductionContext';
@@ -27,18 +28,20 @@ import {
 
 export const DashboardPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
-  const { workers, getPresentCount, getAbsentCount } = useWorkers();
+  const { workers } = useWorkers();
+  const { getPresentCountForDate, getAbsentCountForDate } = useAttendance();
   const { materials } = useMaterials();
   const { products } = useProducts();
   const { jobs } = useProduction();
   const { inspections } = useQuality();
 
+  const todayStr = getTodayDateString();
   const totalWorkers = workers.length;
   const activeWorkers = workers.filter(w => w.status === 'Active').length;
   const onLeaveWorkers = workers.filter(w => w.status === 'On Leave').length;
   const inactiveWorkers = workers.filter(w => w.status === 'Inactive').length;
-  const presentWorkers = getPresentCount();
-  const absentWorkers = getAbsentCount();
+  const presentWorkers = getPresentCountForDate(todayStr);
+  const absentWorkers = getAbsentCountForDate(todayStr, workers);
 
   const totalMaterials = materials.length;
   const lowStockMaterials = materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock');
