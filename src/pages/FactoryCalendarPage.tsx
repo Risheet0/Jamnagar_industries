@@ -18,7 +18,8 @@ import {
   Settings,
   Flame,
   ExternalLink,
-  Layers
+  Layers,
+  AlertCircle
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -94,10 +95,13 @@ export const FactoryCalendarPage: React.FC = () => {
 
   // Calendar Days Calculation
   const calendarDays = useMemo(() => {
-    const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 is Sunday
+    // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
     const days: Array<{
+      type: 'empty-lead' | 'day' | 'empty-trail';
+      key: string;
       dayNumber: number | null;
       dateStr: string | null;
       isWeeklyOff: boolean;
@@ -106,18 +110,20 @@ export const FactoryCalendarPage: React.FC = () => {
       factoryInfo?: FactoryCalendarEntry;
     }> = [];
 
-    // Leading empty cells
+    // Leading empty cells before Day 1
     for (let i = 0; i < firstDayIndex; i++) {
       days.push({
+        type: 'empty-lead',
+        key: `lead-${i}`,
         dayNumber: null,
         dateStr: null,
-        isWeeklyOff: false,
+        isWeeklyOff: i === config.defaultWeeklyOffDay,
         isToday: false,
         dayOfWeek: i
       });
     }
 
-    // Month days
+    // Days 1 through daysInMonth
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const d = new Date(currentYear, currentMonth - 1, day);
@@ -127,6 +133,8 @@ export const FactoryCalendarPage: React.FC = () => {
       const factoryInfo = getFactoryDay(dateStr);
 
       days.push({
+        type: 'day',
+        key: `day-${dateStr}`,
         dayNumber: day,
         dateStr,
         isWeeklyOff,
@@ -134,6 +142,24 @@ export const FactoryCalendarPage: React.FC = () => {
         dayOfWeek,
         factoryInfo
       });
+    }
+
+    // Trailing empty cells to complete the last 7-day row
+    const remainder = days.length % 7;
+    if (remainder !== 0) {
+      const trailingCount = 7 - remainder;
+      for (let t = 0; t < trailingCount; t++) {
+        const trailingDayOfWeek = (firstDayIndex + daysInMonth + t) % 7;
+        days.push({
+          type: 'empty-trail',
+          key: `trail-${t}`,
+          dayNumber: null,
+          dateStr: null,
+          isWeeklyOff: trailingDayOfWeek === config.defaultWeeklyOffDay,
+          isToday: false,
+          dayOfWeek: trailingDayOfWeek
+        });
+      }
     }
 
     return days;
@@ -144,7 +170,10 @@ export const FactoryCalendarPage: React.FC = () => {
     setIsScheduleModalOpen(true);
   };
 
-  const allHolidays2026 = useMemo(() => getAllHolidaysForYear(currentYear), [currentYear, getAllHolidaysForYear]);
+  const holidaysForCurrentYear = useMemo(
+    () => getAllHolidaysForYear(currentYear),
+    [currentYear, getAllHolidaysForYear]
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -162,7 +191,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 setIsScheduleModalOpen(true);
               }}
             >
-              Weekly Off (Friday)
+              Weekly Off ({config.weeklyOffTitle || 'Friday'})
             </Button>
             <Button
               variant="primary"
@@ -172,7 +201,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 setIsScheduleModalOpen(true);
               }}
             >
-              + Declare Holiday / Schedule
+              Declare Holiday / Schedule
             </Button>
           </div>
         }
@@ -204,12 +233,12 @@ export const FactoryCalendarPage: React.FC = () => {
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor:
                   todayFactoryInfo.status === 'Open'
-                    ? 'var(--color-status-success-subtle)'
-                    : 'var(--color-status-danger-subtle)',
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : 'rgba(239, 68, 68, 0.15)',
                 color:
                   todayFactoryInfo.status === 'Open'
-                    ? 'var(--color-status-success-text)'
-                    : 'var(--color-status-danger-text)'
+                    ? 'var(--color-status-success-solid)'
+                    : 'var(--color-status-danger-solid)'
               }}
             >
               {todayFactoryInfo.status === 'Open' ? '🟢 FACTORY OPEN' : '🔴 FACTORY CLOSED'}
@@ -229,7 +258,7 @@ export const FactoryCalendarPage: React.FC = () => {
         <SummaryCard
           title="Operating Days in Month"
           value={`${monthSummary.openDays} Days`}
-          subtitle={`${Math.round((monthSummary.openDays / monthSummary.totalDays) * 100)}% Monthly Plant Uptime`}
+          subtitle={`${monthSummary.totalDays > 0 ? Math.round((monthSummary.openDays / monthSummary.totalDays) * 100) : 0}% Monthly Plant Uptime`}
           icon={<Building2 size={20} />}
           statusTag={{ label: 'Active Floor', variant: 'success' }}
         />
@@ -238,7 +267,7 @@ export const FactoryCalendarPage: React.FC = () => {
         <SummaryCard
           title="Factory Closed Days"
           value={`${monthSummary.closedDays} Days`}
-          subtitle={`${monthSummary.weeklyOffs} Fridays (Weekly Off) + ${monthSummary.holidays} Holidays`}
+          subtitle={`${monthSummary.weeklyOffs} Plant Offs + ${monthSummary.holidays} Holidays`}
           icon={<Calendar size={20} />}
           statusTag={{ label: 'Rest & Maintenance', variant: 'danger' }}
         />
@@ -258,9 +287,9 @@ export const FactoryCalendarPage: React.FC = () => {
       </div>
 
       {/* Main Container: Calendar & Day Inspector */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '16px', alignItems: 'start' }}>
         {/* Left Column: Calendar Card & Controls */}
-        <div className="card" style={{ overflow: 'hidden' }}>
+        <div className="card" style={{ overflow: 'hidden', minWidth: 0 }}>
           {/* Header Bar: Month Switcher & View Tabs */}
           <div
             className="card-header"
@@ -270,11 +299,11 @@ export const FactoryCalendarPage: React.FC = () => {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '12px',
-              padding: '14px 18px'
+              padding: '12px 16px'
             }}
           >
             {/* Month & Year Title with Navigation Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <Button variant="secondary" size="sm" onClick={handlePrevMonth}>
                   <ChevronLeft size={16} />
@@ -284,7 +313,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 </Button>
               </div>
 
-              <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+              <h2 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: 'var(--color-text-primary)' }}>
                 {MONTH_NAMES[currentMonth - 1]} {currentYear}
               </h2>
 
@@ -292,7 +321,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 variant="secondary"
                 size="sm"
                 onClick={handleJumpToCurrentMonth}
-                style={{ fontSize: '12px', marginLeft: '6px' }}
+                style={{ fontSize: '11px', marginLeft: '4px', padding: '4px 8px' }}
               >
                 Today
               </Button>
@@ -306,7 +335,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 onClick={() => setViewMode('calendar')}
                 icon={<Calendar size={14} />}
               >
-                Universal Calendar
+                Calendar
               </Button>
               <Button
                 variant={viewMode === 'matrix' ? 'primary' : 'secondary'}
@@ -322,44 +351,48 @@ export const FactoryCalendarPage: React.FC = () => {
                 onClick={() => setViewMode('holidayList')}
                 icon={<Flame size={14} />}
               >
-                Year Holidays ({allHolidays2026.length})
+                Holidays ({holidaysForCurrentYear.length})
               </Button>
             </div>
           </div>
 
           {/* VIEW 1: Universal Factory Calendar Grid */}
           {viewMode === 'calendar' && (
-            <div style={{ padding: '16px' }}>
+            <div style={{ padding: '14px', minWidth: 0, overflowX: 'auto' }}>
               {/* Day of Week Headers */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: '8px',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  gap: '6px',
                   marginBottom: '8px',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  minWidth: 0
                 }}
               >
                 {DAY_NAMES.map((name, idx) => {
-                  const isFridayWeeklyOff = idx === config.defaultWeeklyOffDay;
+                  const isWeeklyOff = idx === config.defaultWeeklyOffDay;
                   return (
                     <div
                       key={name}
                       style={{
-                        fontSize: '12px',
+                        fontSize: '11px',
                         fontWeight: 700,
-                        padding: '6px',
+                        padding: '6px 2px',
                         borderRadius: 'var(--radius-sm)',
-                        backgroundColor: isFridayWeeklyOff
+                        backgroundColor: isWeeklyOff
                           ? 'rgba(239, 68, 68, 0.12)'
                           : 'var(--color-bg-subtle)',
-                        color: isFridayWeeklyOff
+                        color: isWeeklyOff
                           ? 'var(--color-status-danger-solid)'
                           : 'var(--color-text-secondary)',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}
                     >
-                      {name} {isFridayWeeklyOff ? '• Plant Off' : ''}
+                      {name} {isWeeklyOff ? '• OFF' : ''}
                     </div>
                   );
                 })}
@@ -369,20 +402,22 @@ export const FactoryCalendarPage: React.FC = () => {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: '8px'
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  gap: '6px',
+                  minWidth: 0
                 }}
               >
-                {calendarDays.map((cell, index) => {
-                  if (cell.dayNumber === null || !cell.dateStr) {
+                {calendarDays.map((cell) => {
+                  if (cell.type !== 'day' || cell.dayNumber === null || !cell.dateStr) {
                     return (
                       <div
-                        key={`empty-${index}`}
+                        key={cell.key}
                         style={{
-                          minHeight: '105px',
-                          backgroundColor: 'var(--color-bg-subtle)',
-                          opacity: 0.3,
-                          borderRadius: 'var(--radius-md)'
+                          minHeight: '96px',
+                          backgroundColor: cell.isWeeklyOff ? 'rgba(239, 68, 68, 0.03)' : 'var(--color-bg-subtle)',
+                          opacity: 0.35,
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px dashed var(--color-border-subtle)'
                         }}
                       />
                     );
@@ -395,19 +430,22 @@ export const FactoryCalendarPage: React.FC = () => {
 
                   return (
                     <div
-                      key={cell.dateStr}
+                      key={cell.key}
                       onClick={() => setSelectedDate(cell.dateStr!)}
+                      onDoubleClick={() => openScheduleForDate(cell.dateStr!)}
                       style={{
-                        minHeight: '105px',
-                        padding: '8px 10px',
+                        minHeight: '96px',
+                        padding: '6px 8px',
                         borderRadius: 'var(--radius-md)',
                         border: isSelected
                           ? '2px solid var(--color-brand-primary)'
                           : cell.isToday
                           ? '1.5px solid var(--color-status-success-solid)'
-                          : '1px solid var(--color-border-subtle)',
+                          : isOpen
+                          ? '1px solid var(--color-border-subtle)'
+                          : '1px solid rgba(239, 68, 68, 0.25)',
                         backgroundColor: isSelected
-                          ? 'var(--color-brand-subtle)'
+                          ? 'rgba(59, 130, 246, 0.08)'
                           : isOpen
                           ? 'var(--color-bg-surface)'
                           : 'rgba(239, 68, 68, 0.04)',
@@ -416,15 +454,17 @@ export const FactoryCalendarPage: React.FC = () => {
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         transition: 'all 0.15s ease',
-                        position: 'relative'
+                        position: 'relative',
+                        minWidth: 0,
+                        overflow: 'hidden'
                       }}
                     >
                       {/* Top Row: Day number + Badges */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
                         <span
                           style={{
-                            fontSize: '14px',
-                            fontWeight: cell.isToday ? 800 : 600,
+                            fontSize: '13px',
+                            fontWeight: cell.isToday ? 800 : 700,
                             color: cell.isToday
                               ? 'var(--color-brand-primary)'
                               : isOpen
@@ -438,27 +478,28 @@ export const FactoryCalendarPage: React.FC = () => {
                         {/* Open vs Closed Badge */}
                         <span
                           style={{
-                            fontSize: '10px',
+                            fontSize: '9px',
                             fontWeight: 700,
-                            padding: '2px 5px',
-                            borderRadius: '4px',
+                            padding: '1px 4px',
+                            borderRadius: '3px',
                             backgroundColor: isOpen
                               ? 'rgba(16, 185, 129, 0.15)'
                               : 'rgba(239, 68, 68, 0.15)',
                             color: isOpen
                               ? 'var(--color-status-success-solid)'
-                              : 'var(--color-status-danger-solid)'
+                              : 'var(--color-status-danger-solid)',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          {isOpen ? '🟢 OPEN' : '🔴 CLOSED'}
+                          {isOpen ? 'OPEN' : 'CLOSED'}
                         </span>
                       </div>
 
                       {/* Middle: Title or Event */}
-                      <div style={{ margin: '4px 0' }}>
+                      <div style={{ margin: '2px 0', minWidth: 0 }}>
                         <div
                           style={{
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             fontWeight: 600,
                             color: isOpen ? 'var(--color-text-secondary)' : 'var(--color-status-danger-solid)',
                             overflow: 'hidden',
@@ -472,31 +513,31 @@ export const FactoryCalendarPage: React.FC = () => {
                       </div>
 
                       {/* Bottom: Worker Presence Stats (if Open) or Closed Notice */}
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         {isOpen ? (
                           <div
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '11px',
-                              fontWeight: 600
+                              gap: '3px',
+                              fontSize: '10px',
+                              fontWeight: 700
                             }}
                           >
                             <span style={{ color: 'var(--color-status-success-solid)' }}>
                               {daySummary.present}P
                             </span>
-                            <span style={{ color: 'var(--color-text-muted)' }}>/</span>
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>/</span>
                             <span style={{ color: 'var(--color-status-warning-solid)' }}>
                               {daySummary.halfDay}H
                             </span>
-                            <span style={{ color: 'var(--color-text-muted)' }}>/</span>
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>/</span>
                             <span style={{ color: 'var(--color-status-danger-solid)' }}>
                               {daySummary.absent}A
                             </span>
                           </div>
                         ) : (
-                          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                          <div style={{ fontSize: '9.5px', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {info.category === 'Weekly Off' ? 'Weekly Off' : info.category}
                           </div>
                         )}
@@ -520,7 +561,7 @@ export const FactoryCalendarPage: React.FC = () => {
                     {Array.from({ length: new Date(currentYear, currentMonth, 0).getDate() }, (_, i) => i + 1).map(day => {
                       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                       const fInfo = getFactoryDay(dateStr);
-                      const isFriday = new Date(currentYear, currentMonth - 1, day).getDay() === config.defaultWeeklyOffDay;
+                      const isWeeklyOff = new Date(currentYear, currentMonth - 1, day).getDay() === config.defaultWeeklyOffDay;
 
                       return (
                         <th
@@ -530,7 +571,7 @@ export const FactoryCalendarPage: React.FC = () => {
                             textAlign: 'center',
                             minWidth: '28px',
                             backgroundColor: !fInfo || fInfo.status === 'Closed' ? 'rgba(239, 68, 68, 0.08)' : 'inherit',
-                            color: isFriday ? 'var(--color-status-danger-solid)' : 'inherit'
+                            color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'inherit'
                           }}
                         >
                           <div>{day}</div>
@@ -540,9 +581,9 @@ export const FactoryCalendarPage: React.FC = () => {
                         </th>
                       );
                     })}
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '60px' }}>P</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '60px' }}>A</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '60px' }}>Leave</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-status-success-solid)' }}>P</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-status-danger-solid)' }}>A</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-brand-primary)' }}>L</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -568,7 +609,7 @@ export const FactoryCalendarPage: React.FC = () => {
                         >
                           <div>{w.name}</div>
                           <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                            {w.workerId} • {w.skill}
+                            {w.workerId || w.id} • {w.skill}
                           </div>
                         </td>
 
@@ -589,18 +630,18 @@ export const FactoryCalendarPage: React.FC = () => {
                           } else if (attRecord) {
                             if (attRecord.status === 'Present') {
                               pill = 'P';
-                              bg = 'var(--color-status-success-subtle)';
-                              color = 'var(--color-status-success-text)';
+                              bg = 'rgba(16, 185, 129, 0.15)';
+                              color = 'var(--color-status-success-solid)';
                               pCount++;
                             } else if (attRecord.status === 'Half Day') {
                               pill = 'H';
-                              bg = 'var(--color-status-warning-subtle)';
-                              color = 'var(--color-status-warning-text)';
+                              bg = 'rgba(245, 158, 11, 0.15)';
+                              color = 'var(--color-status-warning-solid)';
                               pCount += 0.5;
                             } else if (attRecord.status === 'Absent') {
                               pill = 'A';
-                              bg = 'var(--color-status-danger-subtle)';
-                              color = 'var(--color-status-danger-text)';
+                              bg = 'rgba(239, 68, 68, 0.15)';
+                              color = 'var(--color-status-danger-solid)';
                               aCount++;
                             } else if (attRecord.status === 'On Leave') {
                               pill = 'L';
@@ -678,67 +719,91 @@ export const FactoryCalendarPage: React.FC = () => {
                     setModalInitialDate(todayStr);
                     setIsScheduleModalOpen(true);
                   }}
+                  icon={<Plus size={14} />}
                 >
-                  + Add Custom Holiday
+                  Declare Holiday
                 </Button>
               </div>
 
-              <div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 14px', fontWeight: 600 }}>Date</th>
-                      <th style={{ padding: '10px 14px', fontWeight: 600 }}>Holiday Name</th>
-                      <th style={{ padding: '10px 14px', fontWeight: 600 }}>Category</th>
-                      <th style={{ padding: '10px 14px', fontWeight: 600 }}>Plant Operations State</th>
-                      <th style={{ padding: '10px 14px', fontWeight: 600 }}>Remarks</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allHolidays2026.map(h => (
-                      <tr key={h.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                        <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                          {h.date}
-                        </td>
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {h.title}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              padding: '2px 6px',
-                              borderRadius: 'var(--radius-sm)',
-                              backgroundColor: 'var(--color-bg-subtle)',
-                              color: 'var(--color-text-secondary)'
-                            }}
-                          >
-                            {h.category}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 'var(--radius-sm)',
-                              backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                              color: 'var(--color-status-danger-solid)'
-                            }}
-                          >
-                            🔴 PLANT CLOSED
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
-                          {h.notes || '—'}
-                        </td>
+              {holidaysForCurrentYear.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <AlertCircle size={28} style={{ color: 'var(--color-text-muted)', marginBottom: '8px' }} />
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                    No declared holidays for {currentYear}
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                    Standard weekly offs will still be observed automatically.
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => {
+                      setModalInitialDate(`${currentYear}-01-01`);
+                      setIsScheduleModalOpen(true);
+                    }}
+                    style={{ marginTop: '10px' }}
+                  >
+                    + Add Holiday for {currentYear}
+                  </Button>
+                </div>
+              ) : (
+                <div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left' }}>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Date</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Holiday Name</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Category</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Plant Operations State</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Remarks</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {holidaysForCurrentYear.map(h => (
+                        <tr key={h.id || h.date} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                          <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                            {h.date}
+                          </td>
+                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            {h.title}
+                          </td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '2px 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--color-bg-subtle)',
+                                color: 'var(--color-text-secondary)'
+                              }}
+                            >
+                              {h.category}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                                color: 'var(--color-status-danger-solid)'
+                              }}
+                            >
+                              🔴 PLANT CLOSED
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 14px', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
+                            {h.notes || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -894,8 +959,8 @@ export const FactoryCalendarPage: React.FC = () => {
               Factory Calendar Rules
             </div>
             <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <li><strong>Fridays:</strong> Standard Jamnagar Brass cluster weekly plant off.</li>
-              <li><strong>Special Working Day:</strong> Can be declared to run production on Fridays or weekends.</li>
+              <li><strong>Weekly Off:</strong> Standard {config.weeklyOffTitle || 'Friday Weekly Factory Off'}.</li>
+              <li><strong>Special Working Day:</strong> Can be declared to run production on weekly offs or holidays.</li>
               <li><strong>Holidays:</strong> Auto-updates daily workforce sheets and payroll calculations.</li>
             </ul>
           </div>

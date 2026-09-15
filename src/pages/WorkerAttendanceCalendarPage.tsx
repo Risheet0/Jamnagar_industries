@@ -7,7 +7,8 @@ import { ApplyLeaveModal } from '../components/common/ApplyLeaveModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
-import { AttendanceRecord } from '../types';
+import { useFactoryCalendar } from '../context/FactoryCalendarContext';
+import { AttendanceRecord, FactoryCalendarEntry } from '../types';
 import {
   Calendar,
   CalendarCheck,
@@ -43,6 +44,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
     getAttendanceForDate,
     getMonthSummary
   } = useAttendance();
+  const { config, getFactoryDay } = useFactoryCalendar();
 
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
@@ -91,19 +93,24 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
     const days: Array<{
+      type: 'empty-lead' | 'day' | 'empty-trail';
+      key: string;
       dayNumber: number | null;
       dateStr: string | null;
-      isWeekend: boolean;
+      isWeeklyOff: boolean;
       isToday: boolean;
+      factoryInfo?: FactoryCalendarEntry;
       record?: AttendanceRecord;
     }> = [];
 
     // Leading empty cells
     for (let i = 0; i < firstDayIndex; i++) {
       days.push({
+        type: 'empty-lead',
+        key: `lead-${i}`,
         dayNumber: null,
         dateStr: null,
-        isWeekend: i === 0,
+        isWeeklyOff: i === config.defaultWeeklyOffDay,
         isToday: false
       });
     }
@@ -112,21 +119,42 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayOfWeek = new Date(currentYear, currentMonth - 1, day).getDay();
-      const isWeekend = dayOfWeek === 0; // Sunday
+      const isWeeklyOff = dayOfWeek === config.defaultWeeklyOffDay;
       const isToday = dateStr === todayStr;
+      const factoryInfo = getFactoryDay(dateStr);
       const record = getAttendanceForDate(worker ? (worker.workerId || worker.id) : resolvedWorkerId, dateStr);
 
       days.push({
+        type: 'day',
+        key: `day-${dateStr}`,
         dayNumber: day,
         dateStr,
-        isWeekend,
+        isWeeklyOff,
         isToday,
+        factoryInfo,
         record
       });
     }
 
+    // Trailing empty cells
+    const remainder = days.length % 7;
+    if (remainder !== 0) {
+      const trailingCount = 7 - remainder;
+      for (let t = 0; t < trailingCount; t++) {
+        const trailingDayOfWeek = (firstDayIndex + daysInMonth + t) % 7;
+        days.push({
+          type: 'empty-trail',
+          key: `trail-${t}`,
+          dayNumber: null,
+          dateStr: null,
+          isWeeklyOff: trailingDayOfWeek === config.defaultWeeklyOffDay,
+          isToday: false
+        });
+      }
+    }
+
     return days;
-  }, [currentYear, currentMonth, worker, resolvedWorkerId, getAttendanceForDate, todayStr, records]);
+  }, [currentYear, currentMonth, worker, resolvedWorkerId, getAttendanceForDate, todayStr, records, config.defaultWeeklyOffDay, getFactoryDay]);
 
   // Month summary calculations
   const summary = useMemo(() => {
@@ -323,23 +351,26 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
             textAlign: 'center'
           }}
         >
-          {DAY_NAMES.map((name, i) => (
-            <div
-              key={name}
-              style={{
-                padding: '8px 4px',
-                fontSize: '12px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: i === 0 ? 'var(--color-status-danger-solid)' : 'var(--color-text-secondary)',
-                backgroundColor: i === 0 ? 'rgba(239, 68, 68, 0.06)' : 'var(--color-bg-subtle)',
-                borderRadius: 'var(--radius-sm)'
-              }}
-            >
-              {name}
-            </div>
-          ))}
+          {DAY_NAMES.map((name, i) => {
+            const isWeeklyOff = i === config.defaultWeeklyOffDay;
+            return (
+              <div
+                key={name}
+                style={{
+                  padding: '8px 4px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-secondary)',
+                  backgroundColor: isWeeklyOff ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-bg-subtle)',
+                  borderRadius: 'var(--radius-sm)'
+                }}
+              >
+                {name} {isWeeklyOff ? '• Off' : ''}
+              </div>
+            );
+          })}
         </div>
 
         {/* Calendar Days Grid */}
@@ -350,17 +381,17 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
             gap: '10px'
           }}
         >
-          {calendarDays.map((item, idx) => {
-            if (item.dayNumber === null) {
+          {calendarDays.map((item) => {
+            if (item.type !== 'day' || item.dayNumber === null) {
               return (
                 <div
-                  key={`empty-${idx}`}
+                  key={item.key}
                   style={{
                     minHeight: '90px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'rgba(241, 245, 249, 0.3)',
+                    backgroundColor: item.isWeeklyOff ? 'rgba(239, 68, 68, 0.03)' : 'var(--color-bg-subtle)',
                     border: '1px dashed var(--color-border-subtle)',
-                    opacity: 0.4
+                    opacity: 0.35
                   }}
                 />
               );
@@ -400,11 +431,11 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
               borderColor = 'var(--color-border-subtle)';
               statusTextColor = 'var(--color-text-secondary)';
               badgeIcon = <Sparkles size={13} style={{ color: 'var(--color-text-muted)' }} />;
-            } else if (item.isWeekend) {
-              bgColor = 'rgba(248, 250, 252, 0.6)';
+            } else if (item.isWeeklyOff) {
+              bgColor = 'rgba(239, 68, 68, 0.04)';
             }
 
-            const cellTooltip = `${item.dateStr}: ${status || 'Not marked'}${rec?.checkInTime ? ` (${rec.checkInTime})` : ''} — Click to view full daily detail`;
+            const cellTooltip = `${item.dateStr}: ${status || (item.isWeeklyOff ? 'Weekly Off' : 'Not marked')}${rec?.checkInTime ? ` (${rec.checkInTime})` : ''} — Click to view full daily detail`;
 
             return (
               <div
@@ -442,7 +473,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                     style={{
                       fontSize: '13px',
                       fontWeight: 700,
-                      color: item.isToday ? 'var(--color-brand-primary)' : item.isWeekend ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)'
+                      color: item.isToday ? 'var(--color-brand-primary)' : item.isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)'
                     }}
                   >
                     {item.dayNumber}
@@ -498,7 +529,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                     </div>
                   ) : (
                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                      {item.isWeekend ? 'Sunday Off' : 'Not marked'}
+                      {item.isWeeklyOff ? (config.weeklyOffTitle || 'Plant Off') : 'Not marked'}
                     </div>
                   )}
                 </div>

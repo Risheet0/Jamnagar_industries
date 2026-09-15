@@ -6,7 +6,7 @@ import {
   PlantOperationalConfig
 } from '../types';
 
-interface MonthOperationalSummary {
+export interface MonthOperationalSummary {
   totalDays: number;
   openDays: number;
   closedDays: number;
@@ -15,7 +15,7 @@ interface MonthOperationalSummary {
   specialWorkingDays: number;
 }
 
-interface FactoryCalendarContextType {
+export interface FactoryCalendarContextType {
   entries: FactoryCalendarEntry[];
   config: PlantOperationalConfig;
   getFactoryDay: (date: string) => FactoryCalendarEntry;
@@ -38,6 +38,7 @@ interface FactoryCalendarContextType {
     notes?: string
   ) => void;
   deleteDayOverride: (date: string) => void;
+  resetToDefaultHolidays: () => void;
   updateConfig: (newConfig: Partial<PlantOperationalConfig>) => void;
   getMonthSummary: (year: number, month: number) => MonthOperationalSummary;
   getAllHolidaysForYear: (year: number) => FactoryCalendarEntry[];
@@ -46,14 +47,14 @@ interface FactoryCalendarContextType {
 const FACTORY_CALENDAR_STORAGE_KEY = 'jamnagar_erp_factory_calendar_v1';
 const PLANT_CONFIG_STORAGE_KEY = 'jamnagar_erp_plant_config_v1';
 
-const DEFAULT_PLANT_CONFIG: PlantOperationalConfig = {
+export const DEFAULT_PLANT_CONFIG: PlantOperationalConfig = {
   defaultWeeklyOffDay: 5, // 5 = Friday (Standard for Jamnagar Brass & Engineering Sector)
   weeklyOffTitle: 'Friday Factory Weekly Off',
   standardShiftTimings: 'Day Shift: 8:00 AM - 8:00 PM (12h)'
 };
 
 // Gujarat & National Industrial Plant Holidays for 2026
-const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
+export const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
   {
     id: 'HOL-2026-01-14',
     date: '2026-01-14',
@@ -61,7 +62,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Makar Sankranti / Uttarayan',
     category: 'Festival',
     notes: 'Gujarat state kite festival — factory completely closed',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-01-26',
@@ -70,7 +72,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Republic Day',
     category: 'National Holiday',
     notes: 'National Flag hoisting in morning, plant operations closed',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-03-04',
@@ -79,7 +82,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Holi (Dhuleti)',
     category: 'Festival',
     notes: 'Festival of colors factory holiday',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-05-01',
@@ -88,7 +92,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Gujarat Gaurav Din / Labour Day',
     category: 'National Holiday',
     notes: 'Official state formation & workers day',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-08-15',
@@ -97,7 +102,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Independence Day',
     category: 'National Holiday',
     notes: '79th Independence Day national holiday',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-09-04',
@@ -106,7 +112,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Janmashtami (Lord Krishna Birth)',
     category: 'Festival',
     notes: 'Major Saurashtra cultural festival — brass foundry shutdown',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-10-02',
@@ -115,7 +122,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Mahatma Gandhi Jayanti',
     category: 'National Holiday',
     notes: 'Porbandar / Gujarat national remembrance day',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-10-20',
@@ -124,7 +132,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Dussehra / Vijaya Dashami (Shastra Puja)',
     category: 'Festival',
     notes: 'Plant machinery & tools Puja at 10:00 AM, production off',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-11-08',
@@ -133,7 +142,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Diwali (Deepavali Plant Shutdown)',
     category: 'Festival',
     notes: 'Diwali foundry maintenance & vacation shutdown',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-11-09',
@@ -142,7 +152,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Nutan Varsh (Gujarati New Year)',
     category: 'Festival',
     notes: 'Bestu Varas annual new year',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   },
   {
     id: 'HOL-2026-11-10',
@@ -151,7 +162,8 @@ const DEFAULT_FACTORY_HOLIDAYS_2026: FactoryCalendarEntry[] = [
     title: 'Bhai Dooj (Bhai Bij)',
     category: 'Festival',
     notes: 'Post-Diwali holiday',
-    isCustomOverride: true
+    isCustomOverride: true,
+    declaredBy: 'Plant Admin'
   }
 ];
 
@@ -162,7 +174,10 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
     try {
       const saved = localStorage.getItem(FACTORY_CALENDAR_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error('Failed to load factory calendar entries:', e);
@@ -202,6 +217,10 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
     setConfig(prev => ({ ...prev, ...newConfig }));
   }, []);
 
+  const resetToDefaultHolidays = useCallback(() => {
+    setEntries(DEFAULT_FACTORY_HOLIDAYS_2026);
+  }, []);
+
   const getFactoryDay = useCallback(
     (date: string): FactoryCalendarEntry => {
       // 1. Check explicit custom entries/overrides
@@ -210,21 +229,27 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
         return explicit;
       }
 
-      // 2. Check day of week against configured Weekly Off (Friday = 5)
-      const d = new Date(date + 'T00:00:00');
-      const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+      // 2. Check day of week against configured Weekly Off (e.g. Friday = 5)
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dateObj = new Date(y, m, d);
+        const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
 
-      if (dayOfWeek === config.defaultWeeklyOffDay) {
-        return {
-          id: `CAL-WEEKLY-${date}`,
-          date,
-          status: 'Closed',
-          title: config.weeklyOffTitle || 'Friday Factory Weekly Off',
-          category: 'Weekly Off',
-          shiftTimings: 'Plant Closed (Weekly Off)',
-          notes: 'Standard plant weekly maintenance & rest day',
-          isCustomOverride: false
-        };
+        if (dayOfWeek === config.defaultWeeklyOffDay) {
+          return {
+            id: `CAL-WEEKLY-${date}`,
+            date,
+            status: 'Closed',
+            title: config.weeklyOffTitle || 'Friday Factory Weekly Off',
+            category: 'Weekly Off',
+            shiftTimings: 'Plant Closed (Weekly Off)',
+            notes: 'Standard plant weekly maintenance & rest day',
+            isCustomOverride: false
+          };
+        }
       }
 
       // 3. Normal Open Working Day
@@ -354,6 +379,7 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
         declareFactoryClosed,
         declareFactoryOpen,
         deleteDayOverride,
+        resetToDefaultHolidays,
         updateConfig,
         getMonthSummary,
         getAllHolidaysForYear
@@ -371,3 +397,4 @@ export const useFactoryCalendar = (): FactoryCalendarContextType => {
   }
   return context;
 };
+

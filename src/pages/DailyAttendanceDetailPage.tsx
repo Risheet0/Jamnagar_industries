@@ -7,6 +7,7 @@ import { ApplyLeaveModal } from '../components/common/ApplyLeaveModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
+import { useFactoryCalendar } from '../context/FactoryCalendarContext';
 import { useToast } from '../context/ToastContext';
 import { AttendanceStatus, Worker } from '../types';
 import {
@@ -27,7 +28,8 @@ import {
   Phone,
   Layers,
   IndianRupee,
-  HardHat
+  HardHat,
+  Building2
 } from 'lucide-react';
 
 interface DailyAttendanceDetailPageProps {
@@ -45,6 +47,7 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
     getDaySummary,
     getLeaveById
   } = useAttendance();
+  const { getFactoryDay } = useFactoryCalendar();
   const { showToast } = useToast();
 
   const todayStr = getTodayDateString();
@@ -73,6 +76,11 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
   const summary = useMemo(() => {
     return getDaySummary(selectedDate, baseWorkers);
   }, [getDaySummary, selectedDate, baseWorkers, records]);
+
+  // Factory status for selected date
+  const factoryDayInfo = useMemo(() => {
+    return getFactoryDay(selectedDate);
+  }, [selectedDate, getFactoryDay]);
 
   // Filter and sort workers
   const processedWorkers = useMemo(() => {
@@ -212,6 +220,28 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
     });
   };
 
+  const handleMarkAllUnmarkedHoliday = () => {
+    const unmarkedWorkerIds = baseWorkers
+      .filter(w => !getAttendanceForDate(w.workerId || w.id, selectedDate))
+      .map(w => w.workerId || w.id);
+
+    if (unmarkedWorkerIds.length === 0) {
+      showToast({
+        title: 'All Logged',
+        message: `All ${baseWorkers.length} operators already have attendance records for this date.`,
+        type: 'info'
+      });
+      return;
+    }
+
+    bulkMarkAttendance(unmarkedWorkerIds, selectedDate, 'Holiday');
+    showToast({
+      title: 'Bulk Holiday Applied',
+      message: `Marked ${unmarkedWorkerIds.length} unmarked operators as Holiday for ${selectedDate}.`,
+      type: 'success'
+    });
+  };
+
   const isToday = selectedDate === todayStr;
 
   return (
@@ -263,16 +293,61 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
             >
               Back to Overview
             </Button>
-            <Button
-              variant="primary"
-              icon={<UserCheck size={14} />}
-              onClick={handleMarkAllUnmarkedPresent}
-            >
-              Mark All Unmarked Present
-            </Button>
+            {factoryDayInfo.status === 'Closed' ? (
+              <Button
+                variant="danger"
+                icon={<Building2 size={14} />}
+                onClick={handleMarkAllUnmarkedHoliday}
+              >
+                Mark Unmarked as Holiday
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                icon={<UserCheck size={14} />}
+                onClick={handleMarkAllUnmarkedPresent}
+              >
+                Mark All Unmarked Present
+              </Button>
+            )}
           </div>
         }
       />
+
+      {/* Factory Operating Status Banner (if Closed) */}
+      {factoryDayInfo.status === 'Closed' && (
+        <div
+          style={{
+            padding: '12px 16px',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>🔴</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-status-danger-solid)' }}>
+                Plant Closed: {factoryDayInfo.title} ({factoryDayInfo.category})
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                {factoryDayInfo.notes || 'Plant operations and floor machining are suspended for this day.'}
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/calendar')}
+          >
+            Manage in Calendar
+          </Button>
+        </div>
+      )}
 
       {/* Date Navigation & Jump Toolbar */}
       <div
