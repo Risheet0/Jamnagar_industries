@@ -3,6 +3,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCard } from '../components/common/SummaryCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { ApplyLeaveModal } from '../components/common/ApplyLeaveModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -41,7 +42,8 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
     markAttendance,
     bulkMarkAttendance,
     getAttendanceForDate,
-    getDaySummary
+    getDaySummary,
+    getLeaveById
   } = useAttendance();
   const { showToast } = useToast();
 
@@ -51,6 +53,10 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
   const [departmentFilter, setDepartmentFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [includeAllWorkers, setIncludeAllWorkers] = useState<boolean>(false);
+
+  // Leave modal state
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState<boolean>(false);
+  const [leaveTargetWorkerId, setLeaveTargetWorkerId] = useState<string | undefined>(undefined);
 
   // Active or All workers based on toggle
   const baseWorkers = useMemo(() => {
@@ -133,6 +139,14 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
 
   const handleStatusChange = (worker: Worker, status: AttendanceStatus) => {
     const workerKey = worker.workerId || worker.id;
+
+    // Intercept On Leave to open the Leave Range Modal
+    if (status === 'On Leave') {
+      setLeaveTargetWorkerId(workerKey);
+      setIsLeaveModalOpen(true);
+      return;
+    }
+
     const currentRec = getAttendanceForDate(workerKey, selectedDate);
 
     markAttendance(workerKey, selectedDate, status, {
@@ -228,6 +242,13 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
         }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button
+              variant="outline"
+              icon={<CalendarDays size={14} />}
+              onClick={() => navigate('/attendance/leaves')}
+            >
+              Leave Directory
+            </Button>
             <Button
               variant="secondary"
               icon={<ArrowLeft size={14} />}
@@ -540,7 +561,34 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
                   {/* Current Status Badge */}
                   <div>
                     {currentStatus ? (
-                      <StatusBadge status={currentStatus} icon={true} />
+                      <div style={{ textAlign: 'right' }}>
+                        <StatusBadge status={currentStatus} icon={true} />
+                        {record?.leaveRecordId && (() => {
+                          const leave = getLeaveById(record.leaveRecordId);
+                          return (
+                            <div
+                              onClick={() => {
+                                setLeaveTargetWorkerId(worker.workerId || worker.id);
+                                setIsLeaveModalOpen(true);
+                              }}
+                              style={{
+                                fontSize: '10px',
+                                color: 'var(--color-status-info-text)',
+                                fontWeight: 600,
+                                marginTop: '3px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                                gap: '3px'
+                              }}
+                              title="Click to view/edit leave application"
+                            >
+                              <span>{leave ? `${leave.leaveType} Leave (${leave.totalDays}d)` : 'Multi-Day Leave'}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     ) : (
                       <span
                         style={{
@@ -815,6 +863,18 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
           })}
         </div>
       )}
+
+      {/* Apply Multi-Day Leave Modal */}
+      <ApplyLeaveModal
+        isOpen={isLeaveModalOpen}
+        onClose={() => {
+          setIsLeaveModalOpen(false);
+          setLeaveTargetWorkerId(undefined);
+        }}
+        workerId={leaveTargetWorkerId}
+        initialStartDate={selectedDate}
+        initialEndDate={selectedDate}
+      />
     </div>
   );
 };

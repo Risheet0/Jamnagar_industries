@@ -35,6 +35,20 @@ export interface Worker {
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Half Day' | 'On Leave' | 'Holiday';
 
+export type LeaveType = 'Sick' | 'Casual' | 'Personal' | 'Emergency' | 'Other';
+
+export interface LeaveRecord {
+  id: string;                 // LV-0001
+  workerId: string;
+  startDate: string;          // YYYY-MM-DD
+  endDate: string;            // YYYY-MM-DD (same as startDate for a 1-day leave)
+  totalDays: number;          // computed inclusive day count
+  leaveType: LeaveType;
+  reason?: string;
+  appliedDate: string;        // YYYY-MM-DD
+  includeWeekends: boolean;   // whether Sat/Sun within range count as leave days
+}
+
 export interface AttendanceRecord {
   workerId: string;
   date: string;              // YYYY-MM-DD
@@ -42,6 +56,7 @@ export interface AttendanceRecord {
   checkInTime?: string;      // "HH:mm" (24-hr) e.g. "08:15" — only relevant for Present/Half Day
   checkOutTime?: string;     // "HH:mm" (24-hr) e.g. "20:30"
   notes?: string;            // e.g. "Casual Leave", "Left at 1 PM"
+  leaveRecordId?: string;    // set only on records auto-created by a LeaveRecord
 }
 
 export interface ShiftConfig {

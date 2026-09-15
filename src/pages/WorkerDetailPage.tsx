@@ -3,6 +3,8 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { WorkerEditModal } from '../components/common/WorkerEditModal';
+import { ApplyLeaveModal } from '../components/common/ApplyLeaveModal';
+import { ConfirmationDialog } from '../components/common/ConfirmationDialog';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -13,6 +15,7 @@ import { getHourlyOvertimeRate } from '../utils/payroll';
 import { Modal } from '../components/common/Modal';
 import { FormField } from '../components/common/FormField';
 import { SelectField } from '../components/common/SelectField';
+import { LeaveRecord } from '../types';
 import {
   ArrowLeft,
   User,
@@ -39,7 +42,9 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const {
     getAttendanceForDate,
     markAttendance,
-    getMonthSummary
+    getMonthSummary,
+    getLeaveRecords,
+    cancelLeave
   } = useAttendance();
   const { jobs } = useProduction();
   const { adjustments, addAdjustment, deleteAdjustment, shiftConfig } = usePayroll();
@@ -47,6 +52,9 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddAdjModalOpen, setIsAddAdjModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [editingLeaveId, setEditingLeaveId] = useState<string | undefined>(undefined);
+  const [cancellingLeave, setCancellingLeave] = useState<LeaveRecord | null>(null);
 
   // New adjustment form state
   const [adjType, setAdjType] = useState<'Uppad' | 'Jama'>('Uppad');
@@ -134,6 +142,16 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
         actions={
           <>
             <Button
+              variant="primary"
+              icon={<Plus size={14} />}
+              onClick={() => {
+                setEditingLeaveId(undefined);
+                setIsLeaveModalOpen(true);
+              }}
+            >
+              Apply Leave
+            </Button>
+            <Button
               variant="secondary"
               icon={<ArrowLeft size={14} />}
               onClick={() => navigate('/workers')}
@@ -149,7 +167,7 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
             </Button>
             {worker.status === 'Active' && (
               <Button
-                variant={isPresent ? 'outline' : 'primary'}
+                variant={isPresent ? 'outline' : 'secondary'}
                 icon={isPresent ? <UserX size={14} /> : <UserCheck size={14} />}
                 onClick={handleAttendanceToggle}
               >
@@ -440,6 +458,108 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
             );
           })()}
 
+          {/* Leave History Card */}
+          {(() => {
+            const workerLeaves = getLeaveRecords(worker.workerId || worker.id);
+            return (
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <CalendarDays size={16} style={{ color: 'var(--color-brand-primary)' }} />
+                    <span>Leave History & Multi-Day Requests ({workerLeaves.length})</span>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus size={13} />}
+                    onClick={() => {
+                      setEditingLeaveId(undefined);
+                      setIsLeaveModalOpen(true);
+                    }}
+                  >
+                    Apply Leave
+                  </Button>
+                </div>
+                <div className="card-body">
+                  {workerLeaves.length > 0 ? (
+                    <div style={{ overflowX: 'auto', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border-default)' }}>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Leave ID</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Category</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Date Range</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'center', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Total Days</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'left', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Reason / Notes</th>
+                            <th style={{ padding: '6px 12px', textAlign: 'center', fontSize: '10px', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {workerLeaves.map(leave => (
+                            <tr key={leave.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                              <td style={{ padding: '6px 12px' }}><span className="mono-code" style={{ fontSize: '11px' }}>{leave.id}</span></td>
+                              <td style={{ padding: '6px 12px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    backgroundColor: leave.leaveType === 'Sick' ? 'var(--color-status-danger-bg)' : 'var(--color-status-info-bg)',
+                                    color: leave.leaveType === 'Sick' ? 'var(--color-status-danger-text)' : 'var(--color-status-info-text)',
+                                    border: `1px solid ${leave.leaveType === 'Sick' ? 'var(--color-status-danger-border)' : 'var(--color-status-info-border)'}`
+                                  }}
+                                >
+                                  {leave.leaveType}
+                                </span>
+                              </td>
+                              <td style={{ padding: '6px 12px' }}>
+                                <span className="mono-code" style={{ fontSize: '11px' }}>{leave.startDate} {leave.startDate !== leave.endDate ? `→ ${leave.endDate}` : ''}</span>
+                              </td>
+                              <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700 }} className="tabular-nums">
+                                {leave.totalDays}d
+                              </td>
+                              <td style={{ padding: '6px 12px', color: 'var(--color-text-secondary)' }}>
+                                {leave.reason || '—'}
+                              </td>
+                              <td style={{ padding: '6px 12px', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingLeaveId(leave.id);
+                                      setIsLeaveModalOpen(true);
+                                    }}
+                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-brand-primary)', padding: '2px' }}
+                                    title="Edit Range"
+                                  >
+                                    <Edit3 size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setCancellingLeave(leave)}
+                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-status-danger-solid)', padding: '2px' }}
+                                    title="Cancel Leave"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                      No active or past leave applications on record.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Assigned Production Jobs */}
           <div className="card">
             <div className="card-header">
@@ -496,6 +616,37 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         worker={worker}
+      />
+
+      {/* Apply Leave Modal */}
+      <ApplyLeaveModal
+        isOpen={isLeaveModalOpen}
+        onClose={() => {
+          setIsLeaveModalOpen(false);
+          setEditingLeaveId(undefined);
+        }}
+        workerId={worker.workerId || worker.id}
+        existingLeaveId={editingLeaveId}
+      />
+
+      {/* Cancel Leave Confirmation */}
+      <ConfirmationDialog
+        isOpen={Boolean(cancellingLeave)}
+        onClose={() => setCancellingLeave(null)}
+        onConfirm={() => {
+          if (cancellingLeave) {
+            cancelLeave(cancellingLeave.id);
+            showToast({
+              title: 'Leave Cancelled',
+              message: `Cancelled ${cancellingLeave.leaveType} leave for ${worker.name}.`,
+              type: 'info'
+            });
+            setCancellingLeave(null);
+          }
+        }}
+        title={`Cancel ${cancellingLeave?.leaveType} Leave (${cancellingLeave?.id})?`}
+        message={`Are you sure you want to cancel the leave from ${cancellingLeave?.startDate} to ${cancellingLeave?.endDate} (${cancellingLeave?.totalDays} days)? Marked days will be reverted to unmarked.`}
+        confirmLabel="Cancel Leave"
       />
 
       {/* Add Adjustment Modal */}

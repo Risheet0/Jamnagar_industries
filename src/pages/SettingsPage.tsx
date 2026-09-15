@@ -10,6 +10,7 @@ import { ConfirmationDialog } from '../components/common/ConfirmationDialog';
 import { EmptyState, ErrorState } from '../components/common/EmptyState';
 import { useToast } from '../context/ToastContext';
 import { useWorkers } from '../context/WorkerContext';
+import { useAttendance } from '../context/AttendanceContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { useQuality } from '../context/QualityContext';
 import { useProducts } from '../context/ProductsContext';
@@ -40,6 +41,7 @@ interface StorageEntityConfig {
 export const SettingsPage: React.FC = () => {
   const { showToast } = useToast();
   const { workers } = useWorkers();
+  const { leaveRecords, records: attendanceRecords } = useAttendance();
   const { materials, stockMovements } = useMaterials();
   const { inspections } = useQuality();
   const { products } = useProducts();
@@ -75,6 +77,8 @@ export const SettingsPage: React.FC = () => {
 
   const storageEntities: StorageEntityConfig[] = [
     { key: 'workers', storageKey: 'jamnagar_erp_workers_v2', label: 'Workers & Karigars', count: workers.length },
+    { key: 'attendance', storageKey: 'jamnagar_erp_attendance_v1', label: 'Daily Attendance Records', count: attendanceRecords.length },
+    { key: 'leaveRecords', storageKey: 'jamnagar_erp_leaves_v1', label: 'Leave Applications', count: leaveRecords.length },
     { key: 'materials', storageKey: 'jamnagar_erp_materials_v1', label: 'Raw Materials Master', count: materials.length },
     { key: 'stockMovements', storageKey: 'jamnagar_erp_stock_movements_v1', label: 'Stock Movement Ledger', count: stockMovements.length },
     { key: 'qualityInspections', storageKey: 'jamnagar_erp_quality_v1', label: 'Quality Control Inspections', count: inspections.length },

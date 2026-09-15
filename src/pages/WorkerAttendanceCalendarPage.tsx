@@ -3,6 +3,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCard } from '../components/common/SummaryCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { ApplyLeaveModal } from '../components/common/ApplyLeaveModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -19,7 +20,8 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 
 interface WorkerAttendanceCalendarPageProps {
@@ -41,6 +43,8 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
     getAttendanceForDate,
     getMonthSummary
   } = useAttendance();
+
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
   // Extract worker ID from route if not directly provided as prop e.g. /attendance/WRK-001
   const pathParts = currentPath.split('/');
@@ -171,6 +175,13 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
         }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button
+              variant="primary"
+              icon={<Plus size={14} />}
+              onClick={() => setIsLeaveModalOpen(true)}
+            >
+              Apply Leave
+            </Button>
             <Button
               variant="secondary"
               icon={<ArrowLeft size={14} />}
@@ -466,12 +477,12 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                         <div
                           style={{
                             fontSize: '9px',
-                            color: 'var(--color-text-muted)',
+                            color: status === 'On Leave' ? 'var(--color-status-info-text)' : 'var(--color-text-muted)',
+                            fontWeight: status === 'On Leave' ? 600 : 400,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            marginTop: '2px',
-                            fontStyle: 'italic'
+                            marginTop: '2px'
                           }}
                         >
                           {rec.notes}
@@ -529,6 +540,13 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           </div>
         </div>
       </div>
+
+      {/* Apply Multi-Day Leave Modal */}
+      <ApplyLeaveModal
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        workerId={worker ? (worker.workerId || worker.id) : resolvedWorkerId}
+      />
     </div>
   );
 };

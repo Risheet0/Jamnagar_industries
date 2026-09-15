@@ -17,6 +17,7 @@ import { WorkerAddPage } from './pages/WorkerAddPage';
 import { WorkerDetailPage } from './pages/WorkerDetailPage';
 import { DailyAttendanceDetailPage } from './pages/DailyAttendanceDetailPage';
 import { WorkerAttendanceCalendarPage } from './pages/WorkerAttendanceCalendarPage';
+import { LeaveManagementPage } from './pages/LeaveManagementPage';
 import { getTodayDateString } from './context/AttendanceContext';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { MaterialAddPage } from './pages/MaterialAddPage';
@@ -58,6 +59,9 @@ const AppRouter: React.FC = () => {
     }
 
     // 3. Attendance routes
+    if (currentPath === '/attendance/leaves' || currentPath === '/leaves') {
+      return <LeaveManagementPage />;
+    }
     if (currentPath === '/attendance') {
       return <DailyAttendanceDetailPage date={getTodayDateString()} />;
     }
