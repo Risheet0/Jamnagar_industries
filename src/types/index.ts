@@ -227,3 +227,39 @@ export type TableColumn<T> = {
   className?: string;
 };
 
+// ==========================================================================
+// UNIVERSAL FACTORY OPERATIONAL CALENDAR TYPES
+// ==========================================================================
+
+export type FactoryDayStatus = 'Open' | 'Closed';
+
+export type HolidayCategory =
+  | 'Weekly Off'
+  | 'Festival'
+  | 'National Holiday'
+  | 'Plant Maintenance'
+  | 'Power Outage / Torrent'
+  | 'Emergency Shutdown'
+  | 'Custom Holiday'
+  | 'Special Working Day';
+
+export interface FactoryCalendarEntry {
+  id: string;                    // e.g. CAL-2026-09-18
+  date: string;                  // YYYY-MM-DD
+  status: FactoryDayStatus;      // 'Open' | 'Closed'
+  title: string;                 // e.g. "Friday Weekly Factory Off", "Diwali Plant Holiday"
+  category: HolidayCategory;
+  shiftTimings?: string;         // e.g. "Standard Plant Shift (8:00 AM - 8:00 PM)"
+  notes?: string;
+  isCustomOverride?: boolean;    // true if user manually configured this date
+  declaredBy?: string;           // e.g. "Plant Admin"
+}
+
+export interface PlantOperationalConfig {
+  defaultWeeklyOffDay: number;   // 5 = Friday (Standard for Jamnagar Brass / Engineering Plants)
+  weeklyOffTitle: string;        // "Friday Factory Weekly Off"
+  standardShiftTimings: string;  // "8:00 AM - 8:00 PM (12h Plant Shift)"
+  emergencyContact?: string;
+}
+
+

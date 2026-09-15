@@ -7,11 +7,13 @@ import { ProductsProvider } from './context/ProductsContext';
 import { ProductionProvider } from './context/ProductionContext';
 import { QualityProvider } from './context/QualityContext';
 import { PayrollProvider } from './context/PayrollContext';
+import { FactoryCalendarProvider } from './context/FactoryCalendarContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
 import { DashboardPage } from './pages/DashboardPage';
+import { FactoryCalendarPage } from './pages/FactoryCalendarPage';
 import { WorkersPage } from './pages/WorkersPage';
 import { WorkerAddPage } from './pages/WorkerAddPage';
 import { WorkerDetailPage } from './pages/WorkerDetailPage';
@@ -46,7 +48,12 @@ const AppRouter: React.FC = () => {
       return <DashboardPage />;
     }
 
-    // 2. Workers routes
+    // 2. Factory Calendar route
+    if (currentPath === '/calendar' || currentPath === '/factory-calendar' || currentPath === '/attendance/calendar') {
+      return <FactoryCalendarPage />;
+    }
+
+    // 3. Workers routes
     if (currentPath === '/workers') {
       return <WorkersPage />;
     }
@@ -152,19 +159,21 @@ export function App() {
     <NavigationProvider>
       <WorkerProvider>
         <AttendanceProvider>
-          <MaterialsProvider>
-            <ProductsProvider>
-              <ProductionProvider>
-                <QualityProvider>
-                  <PayrollProvider>
-                    <ToastProvider>
-                      <AppRouter />
-                    </ToastProvider>
-                  </PayrollProvider>
-                </QualityProvider>
-              </ProductionProvider>
-            </ProductsProvider>
-          </MaterialsProvider>
+          <FactoryCalendarProvider>
+            <MaterialsProvider>
+              <ProductsProvider>
+                <ProductionProvider>
+                  <QualityProvider>
+                    <PayrollProvider>
+                      <ToastProvider>
+                        <AppRouter />
+                      </ToastProvider>
+                    </PayrollProvider>
+                  </QualityProvider>
+                </ProductionProvider>
+              </ProductsProvider>
+            </MaterialsProvider>
+          </FactoryCalendarProvider>
         </AttendanceProvider>
       </WorkerProvider>
     </NavigationProvider>

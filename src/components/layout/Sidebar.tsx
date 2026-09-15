@@ -1,8 +1,8 @@
-import React from 'react';
 import {
   LayoutDashboard,
   Users,
   CalendarCheck,
+  Calendar,
   Boxes,
   Cpu,
   Factory,
@@ -47,6 +47,13 @@ export const Sidebar: React.FC = () => {
       path: '/dashboard',
       icon: <LayoutDashboard size={19} />,
       matchPrefix: '/dashboard'
+    },
+    {
+      id: 'factory-calendar',
+      label: 'Factory Calendar',
+      path: '/calendar',
+      icon: <Calendar size={19} />,
+      matchPrefix: '/calendar'
     },
     {
       id: 'workers',

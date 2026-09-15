@@ -244,6 +244,13 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
               variant="outline"
+              icon={<Calendar size={14} />}
+              onClick={() => navigate('/calendar')}
+            >
+              Factory Calendar
+            </Button>
+            <Button
+              variant="outline"
               icon={<CalendarDays size={14} />}
               onClick={() => navigate('/attendance/leaves')}
             >

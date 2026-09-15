@@ -176,6 +176,13 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
+              variant="outline"
+              icon={<Calendar size={14} />}
+              onClick={() => navigate('/calendar')}
+            >
+              Factory Calendar
+            </Button>
+            <Button
               variant="primary"
               icon={<Plus size={14} />}
               onClick={() => setIsLeaveModalOpen(true)}
