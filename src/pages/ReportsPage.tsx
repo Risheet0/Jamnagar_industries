@@ -65,11 +65,20 @@ export const ReportsPage: React.FC = () => {
       if (w.salaryType === 'Daily Wage') {
         estimatedMonthlyPay = w.salary * 26; // 26 working days
         payFormula = `₹${w.salary}/day × 26 days`;
+      } else if (w.salaryType === 'Hourly Rate') {
+        estimatedMonthlyPay = w.salary * 8 * 26; // 8 hrs × 26 working days
+        payFormula = `₹${w.salary}/hr × 8h × 26 days`;
       } else if (w.salaryType === 'Piece Rate (Karigar)') {
         // If worker has custom notes with rate or use base salary
         estimatedMonthlyPay = w.salary > 0 ? w.salary : totalPiecesProduced * 1.5;
         payFormula = `Base / ₹${w.salary.toLocaleString('en-IN')} + piece output (${totalPiecesProduced} pcs)`;
       }
+
+      const defaultOtRate = w.salaryType === 'Hourly Rate'
+        ? Math.round(w.salary * 1.5)
+        : w.salaryType === 'Daily Wage'
+        ? Math.round((w.salary / 8) * 1.5)
+        : Math.round((w.salary / (26 * 8)) * 1.5);
 
       return {
         id: w.id,
@@ -79,7 +88,7 @@ export const ReportsPage: React.FC = () => {
         skill: w.skill,
         salaryType: w.salaryType,
         baseRate: w.salary,
-        overtimeRate: w.overtimeRate || Math.round(w.salary / (26 * 8) * 1.5),
+        overtimeRate: w.overtimeRate || defaultOtRate,
         piecesMade: totalPiecesProduced,
         estimatedPay: estimatedMonthlyPay,
         payFormula,

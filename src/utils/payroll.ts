@@ -128,6 +128,10 @@ export function getHourlyOvertimeRate(worker: Worker, shiftConfig: ShiftConfig):
     return Math.round(hourlyBase * multiplier);
   }
 
+  if (worker.salaryType === 'Hourly Rate') {
+    return Math.round(worker.salary * multiplier);
+  }
+
   // Piece Rate workers are paid per piece, OT is informational by default
   return 0;
 }
@@ -262,6 +266,24 @@ export function calculateWorkerPayroll(
     }
   } else if (worker.salaryType === 'Daily Wage') {
     baseSalary = Math.round(worker.salary * effectiveWorkingDays);
+  } else if (worker.salaryType === 'Hourly Rate') {
+    let regularHours = 0;
+    const startHours = timeToDecimalHours(shiftConfig.standardStartTime);
+    const endHours = timeToDecimalHours(shiftConfig.standardEndTime);
+    const standardDailyHours = Math.max(1, endHours - startHours);
+
+    dailyBreakdowns.forEach((breakdown, idx) => {
+      const rec = filteredAtt[idx];
+      if (rec && (rec.status === 'Present' || rec.status === 'Half Day')) {
+        if (breakdown.actualHours > 0) {
+          regularHours += Math.max(0, breakdown.actualHours - breakdown.overtimeHours);
+        } else {
+          regularHours += rec.status === 'Half Day' ? standardDailyHours / 2 : standardDailyHours;
+        }
+      }
+    });
+
+    baseSalary = Math.round(worker.salary * regularHours);
   } else {
     // Piece Rate approximation if explicit production jobs not parsed
     baseSalary = Math.round(worker.salary * effectiveWorkingDays);

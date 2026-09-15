@@ -144,6 +144,7 @@ export const WorkerAddPage: React.FC = () => {
                 options={[
                   { value: 'Monthly Fixed', label: 'Monthly Fixed' },
                   { value: 'Daily Wage', label: 'Daily Wage (Per Day)' },
+                  { value: 'Hourly Rate', label: 'Hourly Rate (Per Hour)' },
                   { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Per Unit)' },
                 ]}
                 value={formData.salaryType}
@@ -153,7 +154,15 @@ export const WorkerAddPage: React.FC = () => {
               <FormField
                 label="Manual Rate / Wage Amount"
                 prefix="₹"
-                suffix={formData.salaryType === 'Daily Wage' ? '/ day' : formData.salaryType === 'Piece Rate (Karigar)' ? '/ piece' : '/ month'}
+                suffix={
+                  formData.salaryType === 'Daily Wage'
+                    ? '/ day'
+                    : formData.salaryType === 'Hourly Rate'
+                    ? '/ hr'
+                    : formData.salaryType === 'Piece Rate (Karigar)'
+                    ? '/ piece'
+                    : '/ month'
+                }
                 required
                 type="text"
                 inputMode="decimal"

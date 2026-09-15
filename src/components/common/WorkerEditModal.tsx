@@ -61,6 +61,8 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
     switch (salaryType) {
       case 'Daily Wage':
         return '/ day';
+      case 'Hourly Rate':
+        return '/ hr';
       case 'Piece Rate (Karigar)':
         return '/ piece';
       default:
@@ -76,6 +78,11 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
     if (salaryType === 'Daily Wage') {
       const estMonthly = currentSalaryNum * 26;
       return `Daily rate: ₹${currentSalaryNum.toLocaleString('en-IN')} (~₹${estMonthly.toLocaleString('en-IN')} estimated for 26 days)`;
+    }
+    if (salaryType === 'Hourly Rate') {
+      const estDaily = currentSalaryNum * 8;
+      const estMonthly = estDaily * 26;
+      return `Hourly rate: ₹${currentSalaryNum.toLocaleString('en-IN')}/hr (~₹${estDaily.toLocaleString('en-IN')}/day for 8h shift, ~₹${estMonthly.toLocaleString('en-IN')}/month)`;
     }
     if (salaryType === 'Piece Rate (Karigar)') {
       return `Piece-work rate: ₹${currentSalaryNum.toLocaleString('en-IN')} per unit passed in QC inspection.`;
@@ -229,6 +236,7 @@ export const WorkerEditModal: React.FC<WorkerEditModalProps> = ({
                 options={[
                   { value: 'Monthly Fixed', label: 'Monthly Fixed Wage' },
                   { value: 'Daily Wage', label: 'Daily Wage (Per Day)' },
+                  { value: 'Hourly Rate', label: 'Hourly Rate (Per Hour)' },
                   { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Per Unit)' },
                 ]}
                 value={formData.salaryType || 'Monthly Fixed'}

@@ -318,6 +318,9 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Agreed Rate / Base</div>
                   <div className="tabular-nums" style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-brand-primary)', marginTop: '2px' }}>
                     ₹{worker.salary.toLocaleString('en-IN')}
+                    <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '4px' }}>
+                      {worker.salaryType === 'Hourly Rate' ? '/ hr' : worker.salaryType === 'Daily Wage' ? '/ day' : worker.salaryType === 'Piece Rate (Karigar)' ? '/ pc' : '/ mo'}
+                    </span>
                   </div>
                 </div>
                 <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>

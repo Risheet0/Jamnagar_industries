@@ -9,7 +9,7 @@ export type WorkerSkill = 'CNC Operator' | 'VMC Specialist' | 'Lathe Master' | '
 
 export type WorkerDepartment = 'Machining' | 'Fabrication' | 'Quality & Inspection' | 'Tool Room' | 'Assembly & Packing' | 'Maintenance' | 'Store' | string;
 
-export type SalaryType = 'Monthly Fixed' | 'Daily Wage' | 'Piece Rate (Karigar)';
+export type SalaryType = 'Monthly Fixed' | 'Daily Wage' | 'Hourly Rate' | 'Piece Rate (Karigar)';
 
 export type WorkerStatus = 'Active' | 'Inactive' | 'On Leave' | 'Terminated';
 

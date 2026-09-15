@@ -231,6 +231,9 @@ export const WorkersPage: React.FC = () => {
         <div style={{ textAlign: 'right' }}>
           <div className="tabular-nums" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
             ₹{w.salary.toLocaleString('en-IN')}
+            <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: '3px' }}>
+              {w.salaryType === 'Hourly Rate' ? '/ hr' : w.salaryType === 'Daily Wage' ? '/ day' : w.salaryType === 'Piece Rate (Karigar)' ? '/ pc' : '/ mo'}
+            </span>
           </div>
           <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{w.salaryType}</div>
         </div>

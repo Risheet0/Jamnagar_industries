@@ -66,7 +66,13 @@ export const DashboardPage: React.FC = () => {
 
   // Compute total monthly wage payout
   const totalMonthlyWage = workers.reduce(
-    (acc, w) => acc + (w.salaryType === 'Daily Wage' ? w.salary * 26 : w.salary),
+    (acc, w) =>
+      acc +
+      (w.salaryType === 'Daily Wage'
+        ? w.salary * 26
+        : w.salaryType === 'Hourly Rate'
+        ? w.salary * 8 * 26
+        : w.salary),
     0
   );
 

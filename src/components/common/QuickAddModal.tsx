@@ -354,6 +354,7 @@ export const QuickAddModal: React.FC = () => {
                 options={[
                   { value: 'Monthly Fixed', label: 'Monthly Fixed' },
                   { value: 'Daily Wage', label: 'Daily Wage (Per Day)' },
+                  { value: 'Hourly Rate', label: 'Hourly Rate (Per Hour)' },
                   { value: 'Piece Rate (Karigar)', label: 'Piece Rate (Per Unit)' },
                 ]}
                 value={workerSalaryType}
@@ -362,7 +363,15 @@ export const QuickAddModal: React.FC = () => {
               <FormField
                 label="Manual Salary / Wage Rate"
                 prefix="₹"
-                suffix={workerSalaryType === 'Daily Wage' ? '/ day' : workerSalaryType === 'Piece Rate (Karigar)' ? '/ piece' : '/ month'}
+                suffix={
+                  workerSalaryType === 'Daily Wage'
+                    ? '/ day'
+                    : workerSalaryType === 'Hourly Rate'
+                    ? '/ hr'
+                    : workerSalaryType === 'Piece Rate (Karigar)'
+                    ? '/ piece'
+                    : '/ month'
+                }
                 required
                 type="text"
                 inputMode="decimal"

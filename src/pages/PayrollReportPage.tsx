@@ -601,7 +601,7 @@ export const PayrollReportPage: React.FC = () => {
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{s.salaryType}</div>
                       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        Base: ₹{s.baseRate.toLocaleString('en-IN')}
+                        Base: ₹{s.baseRate.toLocaleString('en-IN')}{s.salaryType === 'Hourly Rate' ? '/hr' : s.salaryType === 'Daily Wage' ? '/day' : s.salaryType === 'Piece Rate (Karigar)' ? '/pc' : '/mo'}
                       </div>
                     </td>
 

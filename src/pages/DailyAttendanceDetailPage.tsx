@@ -641,7 +641,10 @@ export const DailyAttendanceDetailPage: React.FC<DailyAttendanceDetailPageProps>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <IndianRupee size={12} style={{ color: 'var(--color-status-success-solid)' }} />
-                    <span>₹{worker.salary.toLocaleString('en-IN')} <span style={{ opacity: 0.75 }}>({worker.salaryType.split(' ')[0]})</span></span>
+                    <span>
+                      ₹{worker.salary.toLocaleString('en-IN')}{worker.salaryType === 'Hourly Rate' ? '/hr' : worker.salaryType === 'Daily Wage' ? '/day' : worker.salaryType === 'Piece Rate (Karigar)' ? '/pc' : '/mo'}{' '}
+                      <span style={{ opacity: 0.75 }}>({worker.salaryType === 'Hourly Rate' ? 'Hourly' : worker.salaryType.split(' ')[0]})</span>
+                    </span>
                   </div>
                 </div>
 
