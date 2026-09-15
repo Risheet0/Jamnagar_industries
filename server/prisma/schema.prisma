@@ -1,0 +1,212 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  username           String   @unique
+  passwordHash       String
+  role               String   // 'Admin' | 'Plant Manager' | 'Quality Inspector' | 'Store Manager' | 'Viewer'
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+}
+
+model Worker {
+  id               String   @id // e.g. WRK-001
+  workerId         String   @unique
+  name             String
+  photo            String?
+  mobile           String
+  address          String
+  joiningDate      String   // YYYY-MM-DD
+  skill            String
+  department       String
+  salaryType       String
+  salary           Float
+  salaryNotes      String?
+  overtimeRate     Float?
+  status           String   @default("Active")
+  shift            String?
+  emergencyContact String?
+  aadharNumber     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Material {
+  id                String   @id // e.g. MAT-001
+  materialCode      String   @unique
+  materialName      String
+  type              String
+  grade             String
+  size              String
+  unit              String
+  openingStock      Float
+  currentStock      Float
+  minimumStock      Float
+  reorderQuantity   Float
+  unitPrice         Float
+  supplier          String
+  locationRack      String
+  status            String   // 'In Stock' | 'Low Stock' | 'Out of Stock' | 'On Order'
+  lastRestockedDate String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model StockMovement {
+  id           String   @id // e.g. MOV-0001
+  materialId   String
+  materialCode String
+  type         String   // 'Inward' | 'Outward'
+  quantity     Float
+  date         String   // YYYY-MM-DD
+  reference    String?
+  supplier     String?
+  issuedTo     String?
+  heatNumber   String?
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model Product {
+  id                 String   @id // e.g. PRD-001
+  productCode        String   @unique
+  productName        String
+  photo              String?
+  drawing            String
+  drawingRevision    String
+  material           String
+  materialCode       String
+  weight             Float
+  weightUnit         String   // 'g' | 'kg'
+  unit               String   // 'pieces' | 'sets' | 'lots'
+  targetCycleTimeSec Int
+  unitPrice          Float
+  status             String   // 'Active Production' | 'Sample / Prototype' | 'Discontinued' | 'On Hold'
+  category           String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ProductionJob {
+  id               String   @id // e.g. JOB-2026-001
+  jobNumber        String   @unique
+  date             String   // YYYY-MM-DD
+  customer         String
+  productCode      String
+  productName      String
+  requiredQuantity Int
+  producedQuantity Int      @default(0)
+  rejectedQuantity Int      @default(0)
+  assignedWorker   String
+  assignedWorkerId String
+  machine          String
+  dueDate          String   // YYYY-MM-DD
+  status           String   @default("In Production")
+  priority         String   @default("Normal")
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model QualityInspection {
+  id                String   @id // e.g. QC-0001
+  jobId             String
+  jobNumber         String
+  productCode       String
+  productName       String
+  inspectionType    String   // 'First-Piece' | 'In-Process Sample' | 'Final'
+  sampleSize        Int
+  inspectedQuantity Int
+  passedQuantity    Int
+  rejectedQuantity  Int
+  defectTypes       String   // JSON array of strings e.g. '["Burr","Thread Damage"]'
+  dimensionalNotes  String?
+  result            String   // 'Pass' | 'Fail' | 'Pending'
+  inspectedBy       String
+  date              String   // YYYY-MM-DD
+  remarks           String?
+  createdAt         DateTime @default(now())
+}
+
+model AttendanceRecord {
+  workerId      String
+  date          String   // YYYY-MM-DD
+  status        String   // 'Present' | 'Absent' | 'Half Day' | 'On Leave' | 'Holiday'
+  checkInTime   String?  // "HH:mm"
+  checkOutTime  String?  // "HH:mm"
+  notes         String?
+  leaveRecordId String?
+  updatedAt     DateTime @updatedAt
+
+  @@id([workerId, date])
+}
+
+model LeaveRecord {
+  id              String   @id // e.g. LV-0001
+  workerId        String
+  startDate       String   // YYYY-MM-DD
+  endDate         String   // YYYY-MM-DD
+  totalDays       Int
+  leaveType       String   // 'Sick' | 'Casual' | 'Personal' | 'Emergency' | 'Other'
+  reason          String?
+  appliedDate     String   // YYYY-MM-DD
+  includeWeekends Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model SalaryAdjustment {
+  id        String   @id // e.g. ADJ-0001
+  workerId  String
+  date      String   // YYYY-MM-DD
+  type      String   // 'Uppad' | 'Jama'
+  amount    Float
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model ShiftConfig {
+  id                 String @id @default("singleton")
+  standardStartTime  String @default("08:00")
+  standardEndTime    String @default("20:00")
+  overtimeMultiplier Float  @default(1.5)
+}
+
+model FactoryCalendarEntry {
+  id               String   @id // e.g. CAL-2026-09-18
+  date             String   @unique // YYYY-MM-DD
+  status           String   // 'Open' | 'Closed'
+  title            String
+  category         String
+  shiftTimings     String?
+  notes            String?
+  isCustomOverride Boolean  @default(false)
+  declaredBy       String?
+  createdAt        DateTime @default(now())
+}
+
+model PlantOperationalConfig {
+  id                   String  @id @default("singleton")
+  defaultWeeklyOffDay  Int     @default(5)
+  weeklyOffTitle       String  @default("Friday Factory Weekly Off")
+  standardShiftTimings String  @default("8:00 AM - 8:00 PM (12h Plant Shift)")
+  emergencyContact     String?
+}
+
+model CompanyProfile {
+  id               String @id @default("singleton")
+  name             String
+  location         String
+  plantAddress     String
+  gstNumber        String
+  phone            String
+  email            String
+  currentUserJson  String // Serialized JSON of currentUser object
+  shiftTimingJson  String // Serialized JSON of shiftTiming object
+}

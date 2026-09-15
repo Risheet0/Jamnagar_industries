@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AttendanceRecord, AttendanceStatus, Worker, LeaveRecord, LeaveType } from '../types';
-import { mockWorkers } from '../mock/workersData';
 
 export interface ApplyLeaveResult {
   success: boolean;
@@ -55,7 +54,6 @@ interface AttendanceContextType {
     holiday: number;
     unmarked: number;
   };
-  // Multi-day Leave System
   applyLeave: (
     workerId: string,
     startDate: string,
@@ -73,20 +71,21 @@ interface AttendanceContextType {
     meta: { leaveType: LeaveType; reason?: string; includeWeekends: boolean },
     force?: boolean
   ) => ApplyLeaveResult;
+  refreshAttendance?: () => Promise<void>;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
-const ATTENDANCE_STORAGE_KEY = 'jamnagar_erp_attendance_v1';
+const ATTENDANCE_STORAGE_KEY = 'jamnagar_erp_attendance_v2';
 const LEAVES_STORAGE_KEY = 'jamnagar_erp_leaves_v1';
 
-export const getTodayDateString = () => {
+export function getTodayDateString(): string {
   const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+  return `${y}-${m}-${day}`;
+}
 
 export function enumerateDatesInRange(startDate: string, endDate: string, includeWeekends: boolean = false): string[] {
   const dates: string[] = [];
@@ -99,7 +98,7 @@ export function enumerateDatesInRange(startDate: string, endDate: string, includ
 
   const curr = new Date(start);
   while (curr <= end) {
-    const dayOfWeek = curr.getDay(); // 0 is Sunday, 6 is Saturday
+    const dayOfWeek = curr.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     if (includeWeekends || !isWeekend) {
       const y = curr.getFullYear();
@@ -112,90 +111,10 @@ export function enumerateDatesInRange(startDate: string, endDate: string, includ
   return dates;
 }
 
-// Realistic mock seed generator for initial attendance
-const generateInitialAttendanceData = (): AttendanceRecord[] => {
-  const records: AttendanceRecord[] = [];
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed
-  const todayDate = now.getDate();
-
-  const workerIds = mockWorkers
-    .filter(w => w.status === 'Active')
-    .map(w => w.workerId || w.id);
-
-  // Generate for days 1 to today in current month
-  for (let day = 1; day <= todayDate; day++) {
-    const d = new Date(currentYear, currentMonth, day);
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const dayOfWeek = d.getDay(); // 0 is Sunday
-
-    if (dayOfWeek === 0) {
-      // Sunday - Plant Off / Holiday
-      workerIds.forEach(wId => {
-        records.push({
-          workerId: wId,
-          date: dateStr,
-          status: 'Holiday',
-          notes: 'Weekly Factory Off (Sunday)'
-        });
-      });
-      continue;
-    }
-
-    workerIds.forEach((wId, idx) => {
-      // Create realistic diverse attendance patterns
-      let status: AttendanceStatus = 'Present';
-      let checkInTime: string | undefined = `08:${String(10 + ((idx * 7 + day) % 35)).padStart(2, '0')}`;
-      let checkOutTime: string | undefined = '20:30';
-      let notes: string | undefined = undefined;
-      let leaveRecordId: string | undefined = undefined;
-
-      if (idx === 0 && day === 3) {
-        status = 'Half Day';
-        checkOutTime = '13:30';
-        notes = 'First half floor shift';
-      } else if (idx === 1 && day === 5) {
-        status = 'On Leave';
-        checkInTime = undefined;
-        checkOutTime = undefined;
-        notes = 'Approved Medical Leave';
-        leaveRecordId = 'LV-0001';
-      } else if (idx === 2 && day === 8) {
-        status = 'Absent';
-        checkInTime = undefined;
-        checkOutTime = undefined;
-        notes = 'Unplanned absence';
-      } else if (idx === 3 && day === todayDate) {
-        status = 'Absent'; // Keep one absent today for demo visibility
-        checkInTime = undefined;
-        checkOutTime = undefined;
-        notes = 'Not reported';
-      } else if (idx === 4 && day === 4) {
-        status = 'Half Day';
-        checkOutTime = '13:00';
-        notes = 'Tool maintenance half day';
-      }
-
-      records.push({
-        workerId: wId,
-        date: dateStr,
-        status,
-        checkInTime: status === 'Present' || status === 'Half Day' ? checkInTime : undefined,
-        checkOutTime: status === 'Present' || status === 'Half Day' ? checkOutTime : undefined,
-        notes,
-        leaveRecordId
-      });
-    });
-  }
-
-  return records;
-};
-
 const initialMockLeaves: LeaveRecord[] = [
   {
     id: 'LV-0001',
-    workerId: 'WRK-002',
+    workerId: 'WRK-001',
     startDate: '2026-09-05',
     endDate: '2026-09-05',
     totalDays: 1,
@@ -224,15 +143,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (parsed[0].status) {
-            return parsed;
-          }
+          return parsed;
         }
       }
     } catch {
       // ignore
     }
-    return generateInitialAttendanceData();
+    return [];
   });
 
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>(() => {
@@ -250,21 +167,40 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return initialMockLeaves;
   });
 
-  useEffect(() => {
+  const fetchAttendanceAndLeaves = useCallback(async () => {
     try {
-      localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(records));
+      const [attRes, leavesRes] = await Promise.all([
+        fetch('/api/attendance/all', { credentials: 'include' }),
+        fetch('/api/leaves', { credentials: 'include' })
+      ]);
+
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (Array.isArray(attData)) {
+          setRecords(attData);
+          try {
+            localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attData));
+          } catch {}
+        }
+      }
+
+      if (leavesRes.ok) {
+        const leavesData = await leavesRes.json();
+        if (Array.isArray(leavesData)) {
+          setLeaveRecords(leavesData);
+          try {
+            localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leavesData));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore
+      // fallback
     }
-  }, [records]);
+  }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leaveRecords));
-    } catch {
-      // ignore
-    }
-  }, [leaveRecords]);
+    fetchAttendanceAndLeaves();
+  }, [fetchAttendanceAndLeaves]);
 
   const markAttendance = useCallback(
     (
@@ -273,20 +209,53 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       status: AttendanceStatus,
       meta?: { checkInTime?: string; checkOutTime?: string; notes?: string; leaveRecordId?: string }
     ) => {
+      const defaultCheckIn =
+        status === 'Present' || status === 'Half Day'
+          ? meta?.checkInTime || '08:15'
+          : undefined;
+      const defaultCheckOut =
+        status === 'Present'
+          ? meta?.checkOutTime || '20:00'
+          : status === 'Half Day'
+          ? meta?.checkOutTime || '14:00'
+          : undefined;
+
+      const newRecord: AttendanceRecord = {
+        workerId,
+        date,
+        status,
+        checkInTime: defaultCheckIn,
+        checkOutTime: defaultCheckOut,
+        notes: meta?.notes,
+        leaveRecordId: meta?.leaveRecordId
+      };
+
       setRecords(prev => {
         const index = prev.findIndex(r => r.workerId === workerId && r.date === date);
-        const defaultCheckIn =
-          status === 'Present' || status === 'Half Day'
-            ? meta?.checkInTime || '08:15'
-            : undefined;
-        const defaultCheckOut =
-          status === 'Present'
-            ? meta?.checkOutTime || '20:00'
-            : status === 'Half Day'
-            ? meta?.checkOutTime || '14:00'
-            : undefined;
+        let updated: AttendanceRecord[];
+        if (index >= 0) {
+          updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            ...newRecord,
+            notes: meta?.notes !== undefined ? meta.notes : updated[index].notes,
+            leaveRecordId: meta?.leaveRecordId !== undefined ? meta.leaveRecordId : updated[index].leaveRecordId
+          };
+        } else {
+          updated = [...prev, newRecord];
+        }
+        try {
+          localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
 
-        const newRecord: AttendanceRecord = {
+      // Sync to backend
+      fetch('/api/attendance/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
           workerId,
           date,
           status,
@@ -294,32 +263,19 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           checkOutTime: defaultCheckOut,
           notes: meta?.notes,
           leaveRecordId: meta?.leaveRecordId
-        };
-
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            ...newRecord,
-            notes: meta?.notes !== undefined ? meta.notes : updated[index].notes,
-            leaveRecordId: meta?.leaveRecordId !== undefined ? meta.leaveRecordId : updated[index].leaveRecordId
-          };
-          return updated;
-        }
-
-        return [...prev, newRecord];
-      });
+        })
+      }).catch(err => console.error('Failed to sync attendance mark to backend:', err));
     },
     []
   );
 
   const bulkMarkAttendance = useCallback(
     (workerIds: string[], date: string, status: AttendanceStatus) => {
+      const defaultCheckIn = status === 'Present' || status === 'Half Day' ? '08:15' : undefined;
+      const defaultCheckOut = status === 'Present' ? '20:00' : status === 'Half Day' ? '14:00' : undefined;
+
       setRecords(prev => {
         const updated = [...prev];
-        const defaultCheckIn = status === 'Present' || status === 'Half Day' ? '08:15' : undefined;
-        const defaultCheckOut = status === 'Present' ? '20:00' : status === 'Half Day' ? '14:00' : undefined;
-
         workerIds.forEach(wId => {
           const idx = updated.findIndex(r => r.workerId === wId && r.date === date);
           const rec: AttendanceRecord = {
@@ -335,20 +291,47 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             updated.push(rec);
           }
         });
-
+        try {
+          localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(updated));
+        } catch {}
         return updated;
       });
+
+      // Sync to backend
+      fetch('/api/attendance/bulk-mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          workerIds,
+          date,
+          status
+        })
+      }).catch(err => console.error('Failed to sync bulk attendance to backend:', err));
     },
     []
   );
 
   const deleteAttendanceRecord = useCallback((workerId: string, date: string) => {
-    setRecords(prev => prev.filter(r => !(r.workerId === workerId && r.date === date)));
+    setRecords(prev => {
+      const next = prev.filter(r => !(r.workerId === workerId && r.date === date));
+      try {
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/attendance/${workerId}/${date}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync attendance deletion to backend:', err));
   }, []);
 
   const getAttendanceForDate = useCallback(
     (workerId: string, date: string): AttendanceRecord | undefined => {
-      return records.find(r => (r.workerId === workerId || r.workerId === workerId.replace(/^WRK-/, '')) && r.date === date);
+      return records.find(
+        r => (r.workerId === workerId || r.workerId === workerId.replace(/^WRK-/, '')) && r.date === date
+      );
     },
     [records]
   );
@@ -364,7 +347,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     (workerId: string, year: number, month: number): AttendanceRecord[] => {
       const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
       return records.filter(
-        r => (r.workerId === workerId || r.workerId === workerId.replace(/^WRK-/, '')) && r.date.startsWith(monthPrefix)
+        r =>
+          (r.workerId === workerId || r.workerId === workerId.replace(/^WRK-/, '')) &&
+          r.date.startsWith(monthPrefix)
       );
     },
     [records]
@@ -503,10 +488,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [records]
   );
 
-  // ==========================================
-  // MULTI-DAY LEAVE ENGINE
-  // ==========================================
-
   const getLeaveRecords = useCallback(
     (workerId?: string): LeaveRecord[] => {
       if (!workerId) {
@@ -550,7 +531,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       }
 
-      // Check conflicts: any existing record for this worker on target dates that is NOT already "On Leave"
       const conflicts: AttendanceRecord[] = [];
       targetDates.forEach(d => {
         const existing = getAttendanceForDate(workerId, d);
@@ -559,7 +539,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       });
 
-      // If conflicts exist and force is false, stop and return conflicts for confirmation
       if (conflicts.length > 0 && !force) {
         return {
           success: false,
@@ -568,7 +547,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       }
 
-      // Generate unique leave ID: LV-XXXX
       const nextNum = leaveRecords.length + 1;
       const leaveId = `LV-${String(nextNum).padStart(4, '0')}`;
 
@@ -584,7 +562,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         includeWeekends: meta.includeWeekends
       };
 
-      // 1. Create/overwrite AttendanceRecords with status 'On Leave' and leaveRecordId
       setRecords(prev => {
         const updated = [...prev];
         targetDates.forEach(dateStr => {
@@ -605,11 +582,35 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             updated.push(leaveAttRecord);
           }
         });
+        try {
+          localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(updated));
+        } catch {}
         return updated;
       });
 
-      // 2. Add LeaveRecord
-      setLeaveRecords(prev => [newLeave, ...prev]);
+      setLeaveRecords(prev => {
+        const next = [newLeave, ...prev];
+        try {
+          localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      // Sync to backend
+      fetch('/api/leaves/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          workerId,
+          startDate,
+          endDate,
+          leaveType: meta.leaveType,
+          reason: meta.reason,
+          includeWeekends: meta.includeWeekends,
+          force
+        })
+      }).catch(err => console.error('Failed to sync leave to backend:', err));
 
       return {
         success: true,
@@ -621,11 +622,26 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 
   const cancelLeave = useCallback((leaveId: string) => {
-    // 1. Delete all AttendanceRecords associated with this leaveId
-    setRecords(prev => prev.filter(r => r.leaveRecordId !== leaveId));
+    setRecords(prev => {
+      const next = prev.filter(r => r.leaveRecordId !== leaveId);
+      try {
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
-    // 2. Remove the LeaveRecord
-    setLeaveRecords(prev => prev.filter(l => l.id !== leaveId));
+    setLeaveRecords(prev => {
+      const next = prev.filter(l => l.id !== leaveId);
+      try {
+        localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/leaves/${leaveId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync leave cancellation to backend:', err));
   }, []);
 
   const editLeave = useCallback(
@@ -657,7 +673,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       }
 
-      // Check conflicts: existing records that do NOT belong to this leaveId and are not 'On Leave'
       const conflicts: AttendanceRecord[] = [];
       newTargetDates.forEach(d => {
         const existing = getAttendanceForDate(existingLeave.workerId, d);
@@ -674,12 +689,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       }
 
-      // 1. Remove old attendance records belonging to this leaveId that are outside the new range
       setRecords(prev => {
-        // First filter out old records of this leaveId
         const filtered = prev.filter(r => r.leaveRecordId !== leaveId);
-
-        // Then insert new records for all newTargetDates
         newTargetDates.forEach(dateStr => {
           const idx = filtered.findIndex(r => r.workerId === existingLeave.workerId && r.date === dateStr);
           const leaveAttRecord: AttendanceRecord = {
@@ -698,11 +709,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             filtered.push(leaveAttRecord);
           }
         });
-
+        try {
+          localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(filtered));
+        } catch {}
         return filtered;
       });
 
-      // 2. Update LeaveRecord
       const updatedLeave: LeaveRecord = {
         ...existingLeave,
         startDate: newStartDate,
@@ -713,7 +725,13 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         includeWeekends: meta.includeWeekends
       };
 
-      setLeaveRecords(prev => prev.map(l => (l.id === leaveId ? updatedLeave : l)));
+      setLeaveRecords(prev => {
+        const next = prev.map(l => (l.id === leaveId ? updatedLeave : l));
+        try {
+          localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
 
       return {
         success: true,
@@ -744,7 +762,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         getLeaveRecords,
         getLeaveById,
         cancelLeave,
-        editLeave
+        editLeave,
+        refreshAttendance: fetchAttendanceAndLeaves
       }}
     >
       {children}
@@ -759,4 +778,3 @@ export const useAttendance = () => {
   }
   return context;
 };
-

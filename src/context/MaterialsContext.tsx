@@ -29,6 +29,7 @@ interface MaterialsContextType {
   getMaterial: (id: string) => Material | undefined;
   recordInward: (materialId: string, qty: number, meta: InwardMeta) => void;
   recordOutward: (materialId: string, qty: number, meta: OutwardMeta) => boolean;
+  refreshMaterials?: () => Promise<void>;
 }
 
 const MaterialsContext = createContext<MaterialsContextType | undefined>(undefined);
@@ -79,7 +80,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
     } catch {
-      // ignore parse error
+      // ignore
     }
     return initialMaterials;
   });
@@ -94,41 +95,76 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
     } catch {
-      // ignore parse error
+      // ignore
     }
     return initialStockMovements;
   });
 
-  useEffect(() => {
+  const fetchMaterials = useCallback(async () => {
     try {
-      localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(materials));
+      const [matRes, movRes] = await Promise.all([
+        fetch('/api/materials', { credentials: 'include' }),
+        fetch('/api/materials/movements', { credentials: 'include' })
+      ]);
+
+      if (matRes.ok) {
+        const matData = await matRes.json();
+        if (Array.isArray(matData)) {
+          setMaterials(matData);
+          try {
+            localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(matData));
+          } catch {}
+        }
+      }
+
+      if (movRes.ok) {
+        const movData = await movRes.json();
+        if (Array.isArray(movData)) {
+          setStockMovements(movData);
+          try {
+            localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(movData));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore quota error
+      // fallback to current state
     }
-  }, [materials]);
+  }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(stockMovements));
-    } catch {
-      // ignore quota error
-    }
-  }, [stockMovements]);
+    fetchMaterials();
+  }, [fetchMaterials]);
 
   const addMaterial = useCallback((materialData: Omit<Material, 'id'>): Material => {
-    const newId = `MAT-${String(Date.now()).slice(-3)}`;
+    const newId = materialData.materialCode || `MAT-${String(Date.now()).slice(-3)}`;
     const newMat: Material = {
       ...materialData,
-      id: materialData.materialCode || newId,
+      id: newId,
       status: computeStatus(materialData.currentStock, materialData.minimumStock)
     };
-    setMaterials(prev => [...prev, newMat]);
+
+    setMaterials(prev => {
+      const next = [...prev, newMat];
+      try {
+        localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend
+    fetch('/api/materials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newMat)
+    }).catch(err => console.error('Failed to sync material to backend:', err));
+
     return newMat;
   }, []);
 
   const updateMaterial = useCallback((id: string, updated: Partial<Material>) => {
-    setMaterials(prev =>
-      prev.map(m => {
+    setMaterials(prev => {
+      const next = prev.map(m => {
         if (m.id === id || m.materialCode === id) {
           const nextStock = updated.currentStock !== undefined ? updated.currentStock : m.currentStock;
           const nextMin = updated.minimumStock !== undefined ? updated.minimumStock : m.minimumStock;
@@ -136,12 +172,35 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           return { ...m, ...updated, status: nextStatus };
         }
         return m;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend
+    fetch(`/api/materials/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('Failed to sync material update to backend:', err));
   }, []);
 
   const deleteMaterial = useCallback((id: string) => {
-    setMaterials(prev => prev.filter(m => m.id !== id && m.materialCode !== id));
+    setMaterials(prev => {
+      const next = prev.filter(m => m.id !== id && m.materialCode !== id);
+      try {
+        localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/materials/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync material delete to backend:', err));
   }, []);
 
   const getMaterial = useCallback((id: string): Material | undefined => {
@@ -155,8 +214,8 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const newStock = target.currentStock + qty;
     const newStatus = computeStatus(newStock, target.minimumStock);
 
-    setMaterials(prev =>
-      prev.map(m =>
+    setMaterials(prev => {
+      const next = prev.map(m =>
         m.id === target.id
           ? {
               ...m,
@@ -166,8 +225,12 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               status: newStatus
             }
           : m
-      )
-    );
+      );
+      try {
+        localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
     const newMovement: StockMovement = {
       id: `MOV-${String(Date.now()).slice(-4)}`,
@@ -182,7 +245,36 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes: meta.notes
     };
 
-    setStockMovements(prev => [newMovement, ...prev]);
+    setStockMovements(prev => {
+      const next = [newMovement, ...prev];
+      try {
+        localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend atomic endpoint
+    fetch(`/api/materials/${target.id}/inward`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        quantity: qty,
+        date: meta.date,
+        reference: meta.invoiceNumber,
+        supplier: meta.supplier,
+        heatNumber: meta.heatNumber,
+        notes: meta.notes
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.material && data.movement) {
+          setMaterials(prev => prev.map(m => (m.id === data.material.id ? data.material : m)));
+          setStockMovements(prev => [data.movement, ...prev.filter(x => x.id !== newMovement.id)]);
+        }
+      })
+      .catch(err => console.error('Failed to sync inward movement to backend:', err));
   }, [materials]);
 
   const recordOutward = useCallback((materialId: string, qty: number, meta: OutwardMeta): boolean => {
@@ -190,14 +282,14 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!target) return false;
 
     if (qty > target.currentStock && !meta.allowDeficit) {
-      return false; // exceeds current stock
+      return false;
     }
 
     const newStock = Math.max(0, target.currentStock - qty);
     const newStatus = computeStatus(newStock, target.minimumStock);
 
-    setMaterials(prev =>
-      prev.map(m =>
+    setMaterials(prev => {
+      const next = prev.map(m =>
         m.id === target.id
           ? {
               ...m,
@@ -205,8 +297,12 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               status: newStatus
             }
           : m
-      )
-    );
+      );
+      try {
+        localStorage.setItem(MATERIALS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
     const newMovement: StockMovement = {
       id: `MOV-${String(Date.now()).slice(-4)}`,
@@ -220,7 +316,36 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       notes: `${meta.reason}${meta.notes ? ` - ${meta.notes}` : ''}`
     };
 
-    setStockMovements(prev => [newMovement, ...prev]);
+    setStockMovements(prev => {
+      const next = [newMovement, ...prev];
+      try {
+        localStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend atomic endpoint
+    fetch(`/api/materials/${target.id}/outward`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        quantity: qty,
+        date: meta.date,
+        reference: meta.jobId,
+        issuedTo: meta.issuedTo || meta.jobId,
+        notes: `${meta.reason}${meta.notes ? ` - ${meta.notes}` : ''}`
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.material && data.movement) {
+          setMaterials(prev => prev.map(m => (m.id === data.material.id ? data.material : m)));
+          setStockMovements(prev => [data.movement, ...prev.filter(x => x.id !== newMovement.id)]);
+        }
+      })
+      .catch(err => console.error('Failed to sync outward movement to backend:', err));
+
     return true;
   }, [materials]);
 
@@ -234,7 +359,8 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         deleteMaterial,
         getMaterial,
         recordInward,
-        recordOutward
+        recordOutward,
+        refreshMaterials: fetchMaterials
       }}
     >
       {children}

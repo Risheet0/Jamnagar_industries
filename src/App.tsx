@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavigationProvider, useNavigation } from './context/NavigationContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { WorkerProvider } from './context/WorkerContext';
 import { AttendanceProvider } from './context/AttendanceContext';
 import { MaterialsProvider } from './context/MaterialsContext';
@@ -12,6 +13,7 @@ import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
+import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { FactoryCalendarPage } from './pages/FactoryCalendarPage';
 import { WorkersPage } from './pages/WorkersPage';
@@ -41,6 +43,20 @@ import { SettingsPage } from './pages/SettingsPage';
 
 const AppRouter: React.FC = () => {
   const { currentPath } = useNavigation();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm font-medium text-slate-400">Connecting to Plant Server...</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const renderContent = () => {
     // 1. Dashboard
@@ -156,27 +172,29 @@ const AppRouter: React.FC = () => {
 
 export function App() {
   return (
-    <NavigationProvider>
-      <WorkerProvider>
-        <AttendanceProvider>
-          <FactoryCalendarProvider>
-            <MaterialsProvider>
-              <ProductsProvider>
-                <ProductionProvider>
-                  <QualityProvider>
-                    <PayrollProvider>
-                      <ToastProvider>
-                        <AppRouter />
-                      </ToastProvider>
-                    </PayrollProvider>
-                  </QualityProvider>
-                </ProductionProvider>
-              </ProductsProvider>
-            </MaterialsProvider>
-          </FactoryCalendarProvider>
-        </AttendanceProvider>
-      </WorkerProvider>
-    </NavigationProvider>
+    <AuthProvider>
+      <NavigationProvider>
+        <WorkerProvider>
+          <AttendanceProvider>
+            <FactoryCalendarProvider>
+              <MaterialsProvider>
+                <ProductsProvider>
+                  <ProductionProvider>
+                    <QualityProvider>
+                      <PayrollProvider>
+                        <ToastProvider>
+                          <AppRouter />
+                        </ToastProvider>
+                      </PayrollProvider>
+                    </QualityProvider>
+                  </ProductionProvider>
+                </ProductsProvider>
+              </MaterialsProvider>
+            </FactoryCalendarProvider>
+          </AttendanceProvider>
+        </WorkerProvider>
+      </NavigationProvider>
+    </AuthProvider>
   );
 }
 

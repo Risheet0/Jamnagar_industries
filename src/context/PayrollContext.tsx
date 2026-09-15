@@ -20,6 +20,7 @@ interface PayrollContextType {
     dateFrom?: string,
     dateTo?: string
   ) => { totalUppad: number; totalJama: number };
+  refreshPayroll?: () => Promise<void>;
 }
 
 const PayrollContext = createContext<PayrollContextType | undefined>(undefined);
@@ -119,24 +120,56 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return generateInitialAdjustments();
   });
 
-  useEffect(() => {
+  const fetchPayroll = useCallback(async () => {
     try {
-      localStorage.setItem(SHIFT_CONFIG_STORAGE_KEY, JSON.stringify(shiftConfig));
+      const [adjRes, cfgRes] = await Promise.all([
+        fetch('/api/payroll/adjustments', { credentials: 'include' }),
+        fetch('/api/payroll/shift-config', { credentials: 'include' })
+      ]);
+
+      if (adjRes.ok) {
+        const adjData = await adjRes.json();
+        if (Array.isArray(adjData)) {
+          setAdjustments(adjData);
+          try {
+            localStorage.setItem(ADJUSTMENTS_STORAGE_KEY, JSON.stringify(adjData));
+          } catch {}
+        }
+      }
+
+      if (cfgRes.ok) {
+        const cfgData = await cfgRes.json();
+        if (cfgData && cfgData.standardStartTime) {
+          setShiftConfig(cfgData);
+          try {
+            localStorage.setItem(SHIFT_CONFIG_STORAGE_KEY, JSON.stringify(cfgData));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore
+      // fallback
     }
-  }, [shiftConfig]);
+  }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(ADJUSTMENTS_STORAGE_KEY, JSON.stringify(adjustments));
-    } catch {
-      // ignore
-    }
-  }, [adjustments]);
+    fetchPayroll();
+  }, [fetchPayroll]);
 
   const updateShiftConfig = useCallback((cfg: Partial<ShiftConfig>) => {
-    setShiftConfig(prev => ({ ...prev, ...cfg }));
+    setShiftConfig(prev => {
+      const next = { ...prev, ...cfg };
+      try {
+        localStorage.setItem(SHIFT_CONFIG_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch('/api/payroll/shift-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(cfg)
+    }).catch(err => console.error('Failed to sync shift config to backend:', err));
   }, []);
 
   const addAdjustment = useCallback(
@@ -157,14 +190,39 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         reason
       };
 
-      setAdjustments(prev => [newAdj, ...prev]);
+      setAdjustments(prev => {
+        const next = [newAdj, ...prev];
+        try {
+          localStorage.setItem(ADJUSTMENTS_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
+      fetch('/api/payroll/adjustments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newAdj)
+      }).catch(err => console.error('Failed to sync adjustment to backend:', err));
+
       return newAdj;
     },
     []
   );
 
   const deleteAdjustment = useCallback((id: string) => {
-    setAdjustments(prev => prev.filter(a => a.id !== id));
+    setAdjustments(prev => {
+      const next = prev.filter(a => a.id !== id);
+      try {
+        localStorage.setItem(ADJUSTMENTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/payroll/adjustments/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync adjustment deletion to backend:', err));
   }, []);
 
   const getAdjustmentsForWorker = useCallback(
@@ -211,7 +269,8 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addAdjustment,
         deleteAdjustment,
         getAdjustmentsForWorker,
-        getAdjustmentTotals
+        getAdjustmentTotals,
+        refreshPayroll: fetchPayroll
       }}
     >
       {children}

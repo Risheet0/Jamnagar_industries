@@ -7,6 +7,7 @@ interface QualityContextType {
   updateInspection: (id: string, updated: Partial<QualityInspection>) => void;
   deleteInspection: (id: string) => void;
   getInspection: (id: string) => QualityInspection | undefined;
+  refreshInspections?: () => Promise<void>;
 }
 
 const QualityContext = createContext<QualityContextType | undefined>(undefined);
@@ -63,18 +64,31 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
     } catch {
-      // ignore JSON parse error
+      // ignore
     }
     return initialInspections;
   });
 
-  useEffect(() => {
+  const fetchInspections = useCallback(async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inspections));
+      const res = await fetch('/api/quality/inspections', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setInspections(data);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore quota error
+      // fallback
     }
-  }, [inspections]);
+  }, []);
+
+  useEffect(() => {
+    fetchInspections();
+  }, [fetchInspections]);
 
   const addInspection = useCallback((data: Omit<QualityInspection, 'id'>): QualityInspection => {
     const newId = `QC-${String(Date.now()).slice(-4)}`;
@@ -82,18 +96,55 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...data,
       id: newId
     };
-    setInspections(prev => [newInspection, ...prev]);
+
+    setInspections(prev => {
+      const next = [newInspection, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch('/api/quality/inspections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newInspection)
+    }).catch(err => console.error('Failed to sync inspection to backend:', err));
+
     return newInspection;
   }, []);
 
   const updateInspection = useCallback((id: string, updated: Partial<QualityInspection>) => {
-    setInspections(prev =>
-      prev.map(item => (item.id === id ? { ...item, ...updated } : item))
-    );
+    setInspections(prev => {
+      const next = prev.map(item => (item.id === id ? { ...item, ...updated } : item));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/quality/inspections/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('Failed to sync inspection update to backend:', err));
   }, []);
 
   const deleteInspection = useCallback((id: string) => {
-    setInspections(prev => prev.filter(item => item.id !== id));
+    setInspections(prev => {
+      const next = prev.filter(item => item.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/quality/inspections/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync inspection delete to backend:', err));
   }, []);
 
   const getInspection = useCallback((id: string): QualityInspection | undefined => {
@@ -107,7 +158,8 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addInspection,
         updateInspection,
         deleteInspection,
-        getInspection
+        getInspection,
+        refreshInspections: fetchInspections
       }}
     >
       {children}

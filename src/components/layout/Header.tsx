@@ -14,11 +14,14 @@ import {
   HardHat
 } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
+import { useAuth } from '../../context/AuthContext';
 import { mockCompanyProfile } from '../../mock/companyData';
 import { NotificationDropdown } from '../common/NotificationDropdown';
+import { LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { toggleSidebar, isSidebarCollapsed, openGlobalSearch, openQuickAdd, navigate } = useNavigation();
+  const { user, logout } = useAuth();
   const [isQuickAddDropdownOpen, setIsQuickAddDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const quickAddMenuRef = useRef<HTMLDivElement>(null);
@@ -240,15 +243,15 @@ export const Header: React.FC = () => {
                 letterSpacing: '0.02em'
               }}
             >
-              {mockCompanyProfile.currentUser.avatarInitials}
+              {(user?.username || 'RP').slice(0, 2).toUpperCase()}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {mockCompanyProfile.currentUser.username}
+                {user?.username || mockCompanyProfile.currentUser.username}
               </span>
               <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                {mockCompanyProfile.currentUser.role}
+                {user?.role || mockCompanyProfile.currentUser.role}
               </span>
             </div>
 
@@ -270,14 +273,14 @@ export const Header: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '10px', borderBottom: '1px solid var(--color-border-subtle)' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: 'var(--color-brand-primary)', color: '#ffffff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {mockCompanyProfile.currentUser.avatarInitials}
+                  {(user?.username || 'RP').slice(0, 2).toUpperCase()}
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                    {mockCompanyProfile.currentUser.name}
+                    {user?.username || mockCompanyProfile.currentUser.name}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                    {mockCompanyProfile.currentUser.role}
+                    {user?.role || mockCompanyProfile.currentUser.role}
                   </div>
                 </div>
               </div>
@@ -296,7 +299,7 @@ export const Header: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid var(--color-border-subtle)', paddingTop: '8px' }}>
+              <div style={{ borderTop: '1px solid var(--color-border-subtle)', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -307,6 +310,18 @@ export const Header: React.FC = () => {
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
                   Factory & System Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileDropdownOpen(false);
+                    logout();
+                  }}
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: '100%', justifyContent: 'center', color: 'var(--color-status-danger-text)', gap: '6px' }}
+                >
+                  <LogOut size={14} />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </div>

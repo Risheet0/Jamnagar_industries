@@ -42,6 +42,7 @@ export interface FactoryCalendarContextType {
   updateConfig: (newConfig: Partial<PlantOperationalConfig>) => void;
   getMonthSummary: (year: number, month: number) => MonthOperationalSummary;
   getAllHolidaysForYear: (year: number) => FactoryCalendarEntry[];
+  refreshCalendar?: () => Promise<void>;
 }
 
 const FACTORY_CALENDAR_STORAGE_KEY = 'jamnagar_erp_factory_calendar_v1';
@@ -179,8 +180,8 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
           return parsed;
         }
       }
-    } catch (e) {
-      console.error('Failed to load factory calendar entries:', e);
+    } catch {
+      // ignore
     }
     return DEFAULT_FACTORY_HOLIDAYS_2026;
   });
@@ -191,52 +192,90 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
       if (saved) {
         return JSON.parse(saved);
       }
-    } catch (e) {
-      console.error('Failed to load plant config:', e);
+    } catch {
+      // ignore
     }
     return DEFAULT_PLANT_CONFIG;
   });
 
-  useEffect(() => {
+  const fetchCalendar = useCallback(async () => {
     try {
-      localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(entries));
-    } catch (e) {
-      console.error('Failed to save factory calendar entries:', e);
+      const [entriesRes, configRes] = await Promise.all([
+        fetch('/api/calendar/entries', { credentials: 'include' }),
+        fetch('/api/calendar/config', { credentials: 'include' })
+      ]);
+
+      if (entriesRes.ok) {
+        const entriesData = await entriesRes.json();
+        if (Array.isArray(entriesData)) {
+          setEntries(entriesData);
+          try {
+            localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(entriesData));
+          } catch {}
+        }
+      }
+
+      if (configRes.ok) {
+        const configData = await configRes.json();
+        if (configData && configData.defaultWeeklyOffDay !== undefined) {
+          setConfig(configData);
+          try {
+            localStorage.setItem(PLANT_CONFIG_STORAGE_KEY, JSON.stringify(configData));
+          } catch {}
+        }
+      }
+    } catch {
+      // fallback
     }
-  }, [entries]);
+  }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(PLANT_CONFIG_STORAGE_KEY, JSON.stringify(config));
-    } catch (e) {
-      console.error('Failed to save plant config:', e);
-    }
-  }, [config]);
+    fetchCalendar();
+  }, [fetchCalendar]);
 
   const updateConfig = useCallback((newConfig: Partial<PlantOperationalConfig>) => {
-    setConfig(prev => ({ ...prev, ...newConfig }));
+    setConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      try {
+        localStorage.setItem(PLANT_CONFIG_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch('/api/calendar/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newConfig)
+    }).catch(err => console.error('Failed to sync calendar config to backend:', err));
   }, []);
 
   const resetToDefaultHolidays = useCallback(() => {
     setEntries(DEFAULT_FACTORY_HOLIDAYS_2026);
+    try {
+      localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(DEFAULT_FACTORY_HOLIDAYS_2026));
+    } catch {}
+
+    fetch('/api/calendar/reset-holidays', {
+      method: 'POST',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync holiday reset to backend:', err));
   }, []);
 
   const getFactoryDay = useCallback(
     (date: string): FactoryCalendarEntry => {
-      // 1. Check explicit custom entries/overrides
       const explicit = entries.find(e => e.date === date);
       if (explicit) {
         return explicit;
       }
 
-      // 2. Check day of week against configured Weekly Off (e.g. Friday = 5)
       const parts = date.split('-');
       if (parts.length === 3) {
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10) - 1;
         const d = parseInt(parts[2], 10);
         const dateObj = new Date(y, m, d);
-        const dayOfWeek = dateObj.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+        const dayOfWeek = dateObj.getDay();
 
         if (dayOfWeek === config.defaultWeeklyOffDay) {
           return {
@@ -252,7 +291,6 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
         }
       }
 
-      // 3. Normal Open Working Day
       return {
         id: `CAL-OPEN-${date}`,
         date,
@@ -289,8 +327,19 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
 
       setEntries(prev => {
         const filtered = prev.filter(e => e.date !== date);
-        return [...filtered, newEntry];
+        const next = [...filtered, newEntry];
+        try {
+          localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+        return next;
       });
+
+      fetch('/api/calendar/override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newEntry)
+      }).catch(err => console.error('Failed to sync calendar override to backend:', err));
     },
     [config.standardShiftTimings]
   );
@@ -316,7 +365,18 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
   );
 
   const deleteDayOverride = useCallback((date: string) => {
-    setEntries(prev => prev.filter(e => e.date !== date));
+    setEntries(prev => {
+      const next = prev.filter(e => e.date !== date);
+      try {
+        localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/calendar/override/${date}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync delete override to backend:', err));
   }, []);
 
   const getMonthSummary = useCallback(
@@ -382,7 +442,8 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
         resetToDefaultHolidays,
         updateConfig,
         getMonthSummary,
-        getAllHolidaysForYear
+        getAllHolidaysForYear,
+        refreshCalendar: fetchCalendar
       }}
     >
       {children}
@@ -397,4 +458,3 @@ export const useFactoryCalendar = (): FactoryCalendarContextType => {
   }
   return context;
 };
-

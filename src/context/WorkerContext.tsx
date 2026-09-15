@@ -8,6 +8,7 @@ interface WorkerContextType {
   updateWorker: (id: string, updated: Partial<Worker>) => void;
   deleteWorker: (id: string) => void;
   getWorker: (id: string) => Worker | undefined;
+  refreshWorkers?: () => Promise<void>;
 }
 
 const WorkerContext = createContext<WorkerContextType | undefined>(undefined);
@@ -25,39 +26,91 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
     } catch {
-      // ignore JSON error
+      // ignore
     }
     return initialWorkers;
   });
 
-  useEffect(() => {
+  const fetchWorkers = useCallback(async () => {
     try {
-      localStorage.setItem(WORKERS_STORAGE_KEY, JSON.stringify(workers));
+      const res = await fetch('/api/workers', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setWorkers(data);
+          try {
+            localStorage.setItem(WORKERS_STORAGE_KEY, JSON.stringify(data));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore quota error
+      // fallback to current state
     }
-  }, [workers]);
+  }, []);
+
+  useEffect(() => {
+    fetchWorkers();
+  }, [fetchWorkers]);
 
   const addWorker = useCallback((workerData: Omit<Worker, 'id'>): Worker => {
-    const newId = `WRK-${String(Date.now()).slice(-3)}`;
+    const newId = workerData.workerId || `WRK-${String(Date.now()).slice(-3)}`;
     const newWorker: Worker = {
       ...workerData,
-      id: workerData.workerId || newId,
-      workerId: workerData.workerId || newId
+      id: newId,
+      workerId: newId
     };
 
-    setWorkers(prev => [...prev, newWorker]);
+    setWorkers(prev => {
+      const next = [...prev, newWorker];
+      try {
+        localStorage.setItem(WORKERS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend
+    fetch('/api/workers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newWorker)
+    }).catch(err => console.error('Failed to sync worker to backend:', err));
+
     return newWorker;
   }, []);
 
   const updateWorker = useCallback((id: string, updated: Partial<Worker>) => {
-    setWorkers(prev =>
-      prev.map(w => (w.id === id || w.workerId === id ? { ...w, ...updated } : w))
-    );
+    setWorkers(prev => {
+      const next = prev.map(w => (w.id === id || w.workerId === id ? { ...w, ...updated } : w));
+      try {
+        localStorage.setItem(WORKERS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend
+    fetch(`/api/workers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('Failed to sync worker update to backend:', err));
   }, []);
 
   const deleteWorker = useCallback((id: string) => {
-    setWorkers(prev => prev.filter(w => w.id !== id && w.workerId !== id));
+    setWorkers(prev => {
+      const next = prev.filter(w => w.id !== id && w.workerId !== id);
+      try {
+        localStorage.setItem(WORKERS_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend
+    fetch(`/api/workers/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync worker delete to backend:', err));
   }, []);
 
   const getWorker = useCallback((id: string): Worker | undefined => {
@@ -71,7 +124,8 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         addWorker,
         updateWorker,
         deleteWorker,
-        getWorker
+        getWorker,
+        refreshWorkers: fetchWorkers
       }}
     >
       {children}

@@ -9,6 +9,7 @@ interface ProductionContextType {
   deleteJob: (id: string) => void;
   getJob: (id: string) => ProductionJob | undefined;
   logProduction: (jobId: string, producedDelta: number, rejectedDelta: number) => { job?: ProductionJob; isNewlyCompleted: boolean };
+  refreshJobs?: () => Promise<void>;
 }
 
 const ProductionContext = createContext<ProductionContextType | undefined>(undefined);
@@ -26,33 +27,61 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       }
     } catch {
-      // ignore parse error
+      // ignore
     }
     return initialJobs;
   });
 
-  useEffect(() => {
+  const fetchJobs = useCallback(async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
+      const res = await fetch('/api/production/jobs', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setJobs(data);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore quota error
+      // fallback
     }
-  }, [jobs]);
+  }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const addJob = useCallback((data: Omit<ProductionJob, 'id'>): ProductionJob => {
-    const newId = `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`;
+    const newId = data.jobNumber || `JOB-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`;
     const newJob: ProductionJob = {
       ...data,
-      id: data.jobNumber || newId,
-      jobNumber: data.jobNumber || newId
+      id: newId,
+      jobNumber: newId
     };
-    setJobs(prev => [newJob, ...prev]);
+
+    setJobs(prev => {
+      const next = [newJob, ...prev];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch('/api/production/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newJob)
+    }).catch(err => console.error('Failed to sync job to backend:', err));
+
     return newJob;
   }, []);
 
   const updateJob = useCallback((id: string, updated: Partial<ProductionJob>) => {
-    setJobs(prev =>
-      prev.map(j => {
+    setJobs(prev => {
+      const next = prev.map(j => {
         if (j.id === id || j.jobNumber === id) {
           const nextProduced = updated.producedQuantity !== undefined ? updated.producedQuantity : j.producedQuantity;
           const nextRejected = updated.rejectedQuantity !== undefined ? updated.rejectedQuantity : j.rejectedQuantity;
@@ -72,12 +101,34 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           };
         }
         return j;
-      })
-    );
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/production/jobs/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('Failed to sync job update to backend:', err));
   }, []);
 
   const deleteJob = useCallback((id: string) => {
-    setJobs(prev => prev.filter(j => j.id !== id && j.jobNumber !== id));
+    setJobs(prev => {
+      const next = prev.filter(j => j.id !== id && j.jobNumber !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/production/jobs/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync job delete to backend:', err));
   }, []);
 
   const getJob = useCallback((id: string): ProductionJob | undefined => {
@@ -88,8 +139,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     let resultJob: ProductionJob | undefined;
     let newlyCompleted = false;
 
-    setJobs(prev =>
-      prev.map(j => {
+    setJobs(prev => {
+      const next = prev.map(j => {
         if (j.id === jobId || j.jobNumber === jobId) {
           const newProduced = Math.max(0, j.producedQuantity + producedDelta);
           const newRejected = Math.max(0, j.rejectedQuantity + rejectedDelta);
@@ -110,8 +161,30 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           return updatedJob;
         }
         return j;
+      });
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // Sync to backend log-production endpoint
+    fetch(`/api/production/jobs/${jobId}/log-production`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        additionalProduced: producedDelta,
+        additionalRejected: rejectedDelta
       })
-    );
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.job) {
+          setJobs(prev => prev.map(j => (j.id === data.job.id ? data.job : j)));
+        }
+      })
+      .catch(err => console.error('Failed to sync log-production to backend:', err));
 
     return { job: resultJob, isNewlyCompleted: newlyCompleted };
   }, []);
@@ -124,7 +197,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateJob,
         deleteJob,
         getJob,
-        logProduction
+        logProduction,
+        refreshJobs: fetchJobs
       }}
     >
       {children}

@@ -8,6 +8,7 @@ interface ProductsContextType {
   updateProduct: (id: string, updated: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   getProduct: (id: string) => Product | undefined;
+  refreshProducts?: () => Promise<void>;
 }
 
 const ProductsContext = createContext<ProductsContextType | undefined>(undefined);
@@ -25,38 +26,88 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
     } catch {
-      // ignore parse error
+      // ignore
     }
     return initialProducts;
   });
 
-  useEffect(() => {
+  const fetchProducts = useCallback(async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+      const res = await fetch('/api/products', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setProducts(data);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          } catch {}
+        }
+      }
     } catch {
-      // ignore quota error
+      // fallback
     }
-  }, [products]);
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const addProduct = useCallback((data: Omit<Product, 'id'>): Product => {
-    const newId = `PRD-${String(Date.now()).slice(-4)}`;
+    const newId = data.productCode || `PRD-${String(Date.now()).slice(-4)}`;
     const newProduct: Product = {
       ...data,
-      id: data.productCode || newId,
+      id: newId,
       productCode: data.productCode || newId
     };
-    setProducts(prev => [...prev, newProduct]);
+
+    setProducts(prev => {
+      const next = [...prev, newProduct];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch('/api/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(newProduct)
+    }).catch(err => console.error('Failed to sync product to backend:', err));
+
     return newProduct;
   }, []);
 
   const updateProduct = useCallback((id: string, updated: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === id || p.productCode === id ? { ...p, ...updated } : p))
-    );
+    setProducts(prev => {
+      const next = prev.map(p => (p.id === id || p.productCode === id ? { ...p, ...updated } : p));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('Failed to sync product update to backend:', err));
   }, []);
 
   const deleteProduct = useCallback((id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id && p.productCode !== id));
+    setProducts(prev => {
+      const next = prev.filter(p => p.id !== id && p.productCode !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    fetch(`/api/products/${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).catch(err => console.error('Failed to sync product delete to backend:', err));
   }, []);
 
   const getProduct = useCallback((id: string): Product | undefined => {
@@ -70,7 +121,8 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addProduct,
         updateProduct,
         deleteProduct,
-        getProduct
+        getProduct,
+        refreshProducts: fetchProducts
       }}
     >
       {children}
