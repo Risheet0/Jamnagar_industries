@@ -11,6 +11,7 @@ import { useMaterials } from '../../context/MaterialsContext';
 import { useProducts } from '../../context/ProductsContext';
 import { useProduction } from '../../context/ProductionContext';
 import { UserPlus, PackagePlus, Box, PlusCircle, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { DrawingUploader, UploadedDrawingData } from './DrawingUploader';
 
 type QuickAddCategory = 'worker' | 'material' | 'product' | 'job' | 'inward' | 'outward';
 
@@ -38,6 +39,12 @@ export const QuickAddModal: React.FC = () => {
   const [prodName, setProdName] = useState('3/8" Brass Female Adapter');
   const [prodDwgNo, setProdDwgNo] = useState('DWG-2026-FA-09.pdf');
   const [prodDwgRev, setProdDwgRev] = useState('Rev 1.0');
+  const [prodDrawingData, setProdDrawingData] = useState<{
+    drawingUrl?: string;
+    drawingFileName?: string;
+    drawingFileSize?: string;
+    drawingUploadDate?: string;
+  }>({});
   const [prodMatCode, setProdMatCode] = useState('MAT-001');
   const [prodWeight, setProdWeight] = useState('94');
   const [prodCycleTime, setProdCycleTime] = useState('35');
@@ -139,8 +146,12 @@ export const QuickAddModal: React.FC = () => {
     const created = addProduct({
       productCode: prodCode.trim() || `PRD-${String(Date.now()).slice(-3)}`,
       productName: prodName,
-      drawing: prodDwgNo,
-      drawingRevision: prodDwgRev,
+      drawing: prodDwgNo || prodDrawingData.drawingFileName || `DWG-${prodCode.trim()}.pdf`,
+      drawingRevision: prodDwgRev || 'Rev 1.0',
+      drawingUrl: prodDrawingData.drawingUrl,
+      drawingFileName: prodDrawingData.drawingFileName,
+      drawingFileSize: prodDrawingData.drawingFileSize,
+      drawingUploadDate: prodDrawingData.drawingUploadDate,
       materialCode: selectedMat?.materialCode || prodMatCode || 'MAT-001',
       material: selectedMat?.materialName || 'Brass Hex Bar CW614N 19mm',
       weight: Number(prodWeight) || 94,
@@ -466,29 +477,63 @@ export const QuickAddModal: React.FC = () => {
 
         {selectedTab === 'product' && (
           <form onSubmit={handleProductSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <FormField
-                label="Product Code"
-                required
-                value={prodCode}
-                onChange={e => setProdCode(e.target.value)}
-              />
-              <FormField
-                label="Product Name"
-                required
-                value={prodName}
-                onChange={e => setProdName(e.target.value)}
-              />
-              <FormField
-                label="Drawing Number"
-                value={prodDwgNo}
-                onChange={e => setProdDwgNo(e.target.value)}
-              />
-              <FormField
-                label="Drawing Revision"
-                value={prodDwgRev}
-                onChange={e => setProdDwgRev(e.target.value)}
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <FormField
+                  label="Product Code"
+                  required
+                  value={prodCode}
+                  onChange={e => setProdCode(e.target.value)}
+                />
+                <FormField
+                  label="Product Name"
+                  required
+                  value={prodName}
+                  onChange={e => setProdName(e.target.value)}
+                />
+              </div>
+
+              {/* Engineering Drawing Attachment */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
+                  CAD / PDF Engineering Drawing Document
+                </div>
+                <DrawingUploader
+                  compact
+                  currentDrawingUrl={prodDrawingData.drawingUrl}
+                  currentDrawingFileName={prodDrawingData.drawingFileName || prodDwgNo}
+                  currentDrawingFileSize={prodDrawingData.drawingFileSize}
+                  onDrawingUploaded={(data: UploadedDrawingData) => {
+                    setProdDrawingData({
+                      drawingUrl: data.drawingUrl,
+                      drawingFileName: data.drawingFileName,
+                      drawingFileSize: data.drawingFileSize,
+                      drawingUploadDate: data.drawingUploadDate
+                    });
+                    if (data.suggestedDrawingNumber) {
+                      setProdDwgNo(data.suggestedDrawingNumber);
+                    }
+                  }}
+                  onDrawingRemoved={() => {
+                    setProdDrawingData({});
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <FormField
+                  label="Drawing Reference Number"
+                  value={prodDwgNo}
+                  onChange={e => setProdDwgNo(e.target.value)}
+                />
+                <FormField
+                  label="Drawing Revision"
+                  value={prodDwgRev}
+                  onChange={e => setProdDwgRev(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <SelectField
                 label="Raw Material"
                 options={materials.map(m => ({
@@ -510,12 +555,13 @@ export const QuickAddModal: React.FC = () => {
                 value={prodCycleTime}
                 onChange={e => setProdCycleTime(e.target.value)}
               />
-              <FormField
-                label="Unit Price"
-                prefix="₹"
-                value={prodUnitPrice}
-                onChange={e => setProdUnitPrice(e.target.value)}
-              />
+                <FormField
+                  label="Unit Price"
+                  prefix="₹"
+                  value={prodUnitPrice}
+                  onChange={e => setProdUnitPrice(e.target.value)}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>

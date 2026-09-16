@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { DrawingViewerModal } from '../components/common/DrawingViewerModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts } from '../context/ProductsContext';
 import { Product, TableColumn } from '../types';
-import { Plus, Eye, FileText } from 'lucide-react';
+import { Plus, Eye, FileCode } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
   const { products } = useProducts();
+  const [selectedDrawingProduct, setSelectedDrawingProduct] = useState<Product | null>(null);
 
   const columns: TableColumn<Product>[] = [
     {
@@ -34,15 +36,37 @@ export const ProductsPage: React.FC = () => {
     {
       header: 'Engineering Drawing',
       accessor: 'drawing',
-      width: '180px',
+      width: '210px',
       sortable: true,
       render: (p) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <FileText size={14} style={{ color: 'var(--color-brand-primary)' }} />
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 500 }}>{p.drawing}</div>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedDrawingProduct(p);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 8px',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            backgroundColor: 'rgba(2, 132, 199, 0.05)',
+            border: '1px solid rgba(2, 132, 199, 0.2)',
+            transition: 'all 0.15s ease'
+          }}
+          title="Click to preview technical blueprint"
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(2, 132, 199, 0.2)'}
+        >
+          <FileCode size={16} style={{ color: 'var(--color-brand-primary)', flexShrink: 0 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-brand-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {p.drawingFileName || p.drawing}
+            </div>
             <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{p.drawingRevision}</div>
           </div>
+          <Eye size={13} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
         </div>
       )
     },
@@ -82,7 +106,7 @@ export const ProductsPage: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <PageHeader
         title="Manufactured Products Catalogue"
-        description="Master specifications for brass fittings, valve components, shafts, hex fasteners, and CNC turned parts."
+        description="Master specifications for brass fittings, valve components, shafts, hex fasteners, and CNC turned parts with CAD drawings."
         breadcrumbs={[
           { label: 'Products' }
         ]}
@@ -107,18 +131,42 @@ export const ProductsPage: React.FC = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setSelectedDrawingProduct(row);
+              }}
+              className="btn btn-ghost btn-sm btn-icon-only"
+              title="View Engineering Drawing Blueprint"
+            >
+              <FileCode size={14} style={{ color: 'var(--color-brand-primary)' }} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 navigate(`/products/${row.id}`);
               }}
               className="btn btn-ghost btn-sm btn-icon-only"
-              title="View Product Drawing & Specs"
+              title="View Product Specifications"
             >
-              <Eye size={14} style={{ color: 'var(--color-brand-primary)' }} />
+              <Eye size={14} style={{ color: 'var(--color-text-secondary)' }} />
             </button>
           </div>
         )}
         onAddClick={() => openQuickAdd('product')}
         addLabel="Add Product"
       />
+
+      {/* Engineering Drawing Viewer Modal */}
+      {selectedDrawingProduct && (
+        <DrawingViewerModal
+          isOpen={Boolean(selectedDrawingProduct)}
+          onClose={() => setSelectedDrawingProduct(null)}
+          product={selectedDrawingProduct}
+          onUploadNewDrawing={() => {
+            const prod = selectedDrawingProduct;
+            setSelectedDrawingProduct(null);
+            navigate(`/products/${prod.id}`);
+          }}
+        />
+      )}
     </div>
   );
 };

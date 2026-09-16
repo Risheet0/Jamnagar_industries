@@ -110,6 +110,10 @@ export interface Product {
   photo?: string;
   drawing: string;         // e.g. DWG-2026-BF-01.pdf
   drawingRevision: string; // e.g. Rev 3.2
+  drawingUrl?: string;     // Base64 data URL, PDF blob URL or CAD preview
+  drawingFileName?: string;// Original uploaded file name
+  drawingFileSize?: string;// e.g. "1.4 MB"
+  drawingUploadDate?: string; // YYYY-MM-DD
   material: string;        // Brass IS 319 Gr 1
   materialCode: string;    // MAT-BRS-001
   weight: number;          // In grams or kg
