@@ -5,6 +5,7 @@ import {
   HolidayCategory,
   PlantOperationalConfig
 } from '../types';
+import { apiUrl } from '../utils/api';
 
 export interface MonthOperationalSummary {
   totalDays: number;
@@ -201,8 +202,8 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
   const fetchCalendar = useCallback(async () => {
     try {
       const [entriesRes, configRes] = await Promise.all([
-        fetch('/api/calendar/entries', { credentials: 'include' }),
-        fetch('/api/calendar/config', { credentials: 'include' })
+        fetch(apiUrl('/api/calendar/entries'), { credentials: 'include' }),
+        fetch(apiUrl('/api/calendar/config'), { credentials: 'include' })
       ]);
 
       if (entriesRes.ok) {
@@ -242,7 +243,7 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
       return next;
     });
 
-    fetch('/api/calendar/config', {
+    fetch(apiUrl('/api/calendar/config'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -256,7 +257,7 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
       localStorage.setItem(FACTORY_CALENDAR_STORAGE_KEY, JSON.stringify(DEFAULT_FACTORY_HOLIDAYS_2026));
     } catch {}
 
-    fetch('/api/calendar/reset-holidays', {
+    fetch(apiUrl('/api/calendar/reset-holidays'), {
       method: 'POST',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync holiday reset to backend:', err));
@@ -334,7 +335,7 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
         return next;
       });
 
-      fetch('/api/calendar/override', {
+      fetch(apiUrl('/api/calendar/override'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -373,7 +374,7 @@ export const FactoryCalendarProvider: React.FC<{ children: React.ReactNode }> = 
       return next;
     });
 
-    fetch(`/api/calendar/override/${date}`, {
+    fetch(apiUrl(`/api/calendar/override/${date}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync delete override to backend:', err));

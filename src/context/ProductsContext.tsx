@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product } from '../types';
 import { mockProducts as initialProducts } from '../mock/productsData';
+import { apiUrl } from '../utils/api';
 
 interface ProductsContextType {
   products: Product[];
@@ -33,7 +34,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/products', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/products'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -68,7 +69,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return next;
     });
 
-    fetch('/api/products', {
+    fetch(apiUrl('/api/products'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -87,7 +88,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return next;
     });
 
-    fetch(`/api/products/${id}`, {
+    fetch(apiUrl(`/api/products/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -104,7 +105,7 @@ export const ProductsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return next;
     });
 
-    fetch(`/api/products/${id}`, {
+    fetch(apiUrl(`/api/products/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync product delete to backend:', err));

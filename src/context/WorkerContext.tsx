@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Worker } from '../types';
 import { mockWorkers as initialWorkers } from '../mock/workersData';
+import { apiUrl } from '../utils/api';
 
 interface WorkerContextType {
   workers: Worker[];
@@ -33,7 +34,7 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const fetchWorkers = useCallback(async () => {
     try {
-      const res = await fetch('/api/workers', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/workers'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -69,7 +70,7 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // Sync to backend
-    fetch('/api/workers', {
+    fetch(apiUrl('/api/workers'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -89,7 +90,7 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // Sync to backend
-    fetch(`/api/workers/${id}`, {
+    fetch(apiUrl(`/api/workers/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -107,7 +108,7 @@ export const WorkerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // Sync to backend
-    fetch(`/api/workers/${id}`, {
+    fetch(apiUrl(`/api/workers/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync worker delete to backend:', err));

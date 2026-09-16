@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ProductionJob } from '../types';
 import { mockProductionJobs as initialJobs } from '../mock/productionData';
+import { apiUrl } from '../utils/api';
 
 interface ProductionContextType {
   jobs: ProductionJob[];
@@ -34,7 +35,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch('/api/production/jobs', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/production/jobs'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -69,7 +70,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return next;
     });
 
-    fetch('/api/production/jobs', {
+    fetch(apiUrl('/api/production/jobs'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -108,7 +109,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return next;
     });
 
-    fetch(`/api/production/jobs/${id}`, {
+    fetch(apiUrl(`/api/production/jobs/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -125,7 +126,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return next;
     });
 
-    fetch(`/api/production/jobs/${id}`, {
+    fetch(apiUrl(`/api/production/jobs/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync job delete to backend:', err));
@@ -169,7 +170,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
 
     // Sync to backend log-production endpoint
-    fetch(`/api/production/jobs/${jobId}/log-production`, {
+    fetch(apiUrl(`/api/production/jobs/${jobId}/log-production`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

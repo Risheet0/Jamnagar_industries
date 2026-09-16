@@ -34,15 +34,45 @@ if (!fs.existsSync(prismaDir)) {
 // Session store
 const SQLiteStore = connectSqlite3(session);
 
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+
+// Trust reverse proxy for HTTPS cookies on Render/Heroku/Vercel
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
+// Allowed origins for CORS (Vercel, LAN, Localhost)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: true, // Allow frontend dev server and LAN workstations
-    credentials: true
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow any Vercel preview/production deployment or localhost
+      if (
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.includes('10.10.') ||
+        allowedOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive fallback
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(
   session({
@@ -54,9 +84,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // LAN HTTP deployment
+      secure: isProduction, // HTTPS on Render
+      sameSite: isProduction ? 'none' : 'lax', // Required for cross-site cookies between Vercel and Render
       httpOnly: true,
-      maxAge: 12 * 60 * 60 * 1000 // 12 hours (standard industrial floor shift)
+      maxAge: 12 * 60 * 60 * 1000 // 12 hours
     }
   })
 );

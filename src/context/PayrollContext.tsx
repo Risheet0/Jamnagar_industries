@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { SalaryAdjustment, AdjustmentType, ShiftConfig } from '../types';
 import { mockWorkers } from '../mock/workersData';
+import { apiUrl } from '../utils/api';
 
 interface PayrollContextType {
   adjustments: SalaryAdjustment[];
@@ -123,8 +124,8 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const fetchPayroll = useCallback(async () => {
     try {
       const [adjRes, cfgRes] = await Promise.all([
-        fetch('/api/payroll/adjustments', { credentials: 'include' }),
-        fetch('/api/payroll/shift-config', { credentials: 'include' })
+        fetch(apiUrl('/api/payroll/adjustments'), { credentials: 'include' }),
+        fetch(apiUrl('/api/payroll/shift-config'), { credentials: 'include' })
       ]);
 
       if (adjRes.ok) {
@@ -164,7 +165,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
 
-    fetch('/api/payroll/shift-config', {
+    fetch(apiUrl('/api/payroll/shift-config'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -198,7 +199,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return next;
       });
 
-      fetch('/api/payroll/adjustments', {
+      fetch(apiUrl('/api/payroll/adjustments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -219,7 +220,7 @@ export const PayrollProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
 
-    fetch(`/api/payroll/adjustments/${id}`, {
+    fetch(apiUrl(`/api/payroll/adjustments/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync adjustment deletion to backend:', err));

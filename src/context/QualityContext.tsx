@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { QualityInspection } from '../types';
+import { apiUrl } from '../utils/api';
 
 interface QualityContextType {
   inspections: QualityInspection[];
@@ -71,7 +72,7 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchInspections = useCallback(async () => {
     try {
-      const res = await fetch('/api/quality/inspections', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/quality/inspections'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -105,7 +106,7 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
 
-    fetch('/api/quality/inspections', {
+    fetch(apiUrl('/api/quality/inspections'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -124,7 +125,7 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
 
-    fetch(`/api/quality/inspections/${id}`, {
+    fetch(apiUrl(`/api/quality/inspections/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -141,7 +142,7 @@ export const QualityProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
 
-    fetch(`/api/quality/inspections/${id}`, {
+    fetch(apiUrl(`/api/quality/inspections/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync inspection delete to backend:', err));

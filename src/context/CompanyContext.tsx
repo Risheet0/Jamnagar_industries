@@ -1,24 +1,25 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { CompanyProfile } from '../types';
 import { mockCompanyProfile } from '../mock/companyData';
+import { apiUrl } from '../utils/api';
+
+const COMPANY_STORAGE_KEY = 'jamnagar_erp_company_profile';
 
 interface CompanyContextType {
   companyProfile: CompanyProfile;
-  updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<boolean>;
-  refreshCompanyProfile: () => Promise<void>;
   isLoading: boolean;
+  updateCompanyProfile: (fields: Partial<CompanyProfile>) => Promise<boolean>;
+  refreshCompanyProfile: () => Promise<void>;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
-const COMPANY_STORAGE_KEY = 'jamnagar_erp_company_profile_v1';
-
 export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() => {
     try {
-      const saved = localStorage.getItem(COMPANY_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const stored = localStorage.getItem(COMPANY_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object' && parsed.name) {
           return {
             ...mockCompanyProfile,
@@ -35,7 +36,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
     } catch {
-      // fallback to mockCompanyProfile
+      // fallback
     }
     return mockCompanyProfile;
   });
@@ -45,7 +46,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const refreshCompanyProfile = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/settings/company-profile', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/settings/company-profile'), { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (data && data.name) {
@@ -113,7 +114,7 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     try {
-      const res = await fetch('/api/settings/company-profile', {
+      const res = await fetch(apiUrl('/api/settings/company-profile'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

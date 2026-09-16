@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Material, StockMovement, MaterialStatus } from '../types';
 import { mockMaterials as initialMaterials } from '../mock/materialsData';
+import { apiUrl } from '../utils/api';
 
 interface InwardMeta {
   supplier: string;
@@ -103,8 +104,8 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const fetchMaterials = useCallback(async () => {
     try {
       const [matRes, movRes] = await Promise.all([
-        fetch('/api/materials', { credentials: 'include' }),
-        fetch('/api/materials/movements', { credentials: 'include' })
+        fetch(apiUrl('/api/materials'), { credentials: 'include' }),
+        fetch(apiUrl('/api/materials/movements'), { credentials: 'include' })
       ]);
 
       if (matRes.ok) {
@@ -152,7 +153,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Sync to backend
-    fetch('/api/materials', {
+    fetch(apiUrl('/api/materials'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -180,7 +181,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Sync to backend
-    fetch(`/api/materials/${id}`, {
+    fetch(apiUrl(`/api/materials/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -197,7 +198,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return next;
     });
 
-    fetch(`/api/materials/${id}`, {
+    fetch(apiUrl(`/api/materials/${id}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync material delete to backend:', err));
@@ -254,7 +255,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Sync to backend atomic endpoint
-    fetch(`/api/materials/${target.id}/inward`, {
+    fetch(apiUrl(`/api/materials/${target.id}/inward`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -325,7 +326,7 @@ export const MaterialsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     // Sync to backend atomic endpoint
-    fetch(`/api/materials/${target.id}/outward`, {
+    fetch(apiUrl(`/api/materials/${target.id}/outward`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

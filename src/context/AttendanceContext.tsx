@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AttendanceRecord, AttendanceStatus, Worker, LeaveRecord, LeaveType } from '../types';
+import { apiUrl } from '../utils/api';
 
 export interface ApplyLeaveResult {
   success: boolean;
@@ -170,8 +171,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const fetchAttendanceAndLeaves = useCallback(async () => {
     try {
       const [attRes, leavesRes] = await Promise.all([
-        fetch('/api/attendance/all', { credentials: 'include' }),
-        fetch('/api/leaves', { credentials: 'include' })
+        fetch(apiUrl('/api/attendance/all'), { credentials: 'include' }),
+        fetch(apiUrl('/api/leaves'), { credentials: 'include' })
       ]);
 
       if (attRes.ok) {
@@ -251,7 +252,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       // Sync to backend
-      fetch('/api/attendance/mark', {
+      fetch(apiUrl('/api/attendance/mark'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -298,7 +299,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       // Sync to backend
-      fetch('/api/attendance/bulk-mark', {
+      fetch(apiUrl('/api/attendance/bulk-mark'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -321,7 +322,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return next;
     });
 
-    fetch(`/api/attendance/${workerId}/${date}`, {
+    fetch(apiUrl(`/api/attendance/${workerId}/${date}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync attendance deletion to backend:', err));
@@ -597,7 +598,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       // Sync to backend
-      fetch('/api/leaves/apply', {
+      fetch(apiUrl('/api/leaves/apply'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -638,7 +639,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return next;
     });
 
-    fetch(`/api/leaves/${leaveId}`, {
+    fetch(apiUrl(`/api/leaves/${leaveId}`), {
       method: 'DELETE',
       credentials: 'include'
     }).catch(err => console.error('Failed to sync leave cancellation to backend:', err));
