@@ -3,13 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useCompany } from '../context/CompanyContext';
 import { AlertCircle, CheckCircle, ArrowRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 
-const QUICK_LOGINS = [
-  { label: 'Admin', username: 'admin', password: 'admin123', color: '#1e3a8a' },
-  { label: 'Manager', username: 'manager', password: 'manager123', color: '#0284c7' },
-  { label: 'Quality', username: 'quality', password: 'quality123', color: '#059669' },
-  { label: 'Store', username: 'store', password: 'store123', color: '#7c3aed' },
-];
-
 export const LoginPage: React.FC = () => {
   const { login, changePassword, user } = useAuth();
   const { companyProfile } = useCompany();
@@ -40,12 +33,6 @@ export const LoginPage: React.FC = () => {
     if (!result.success) {
       setError(result.error || 'Invalid credentials. Please try again.');
     }
-  };
-
-  const handleQuickLogin = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError(null);
   };
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
@@ -175,28 +162,6 @@ export const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Logins */}
-          <div style={styles.quickSection}>
-            <span style={styles.quickLabel}>Quick Role Switch (Demo)</span>
-            <div style={styles.quickGrid}>
-              {QUICK_LOGINS.map(({ label, username: u, password: p, color }) => (
-                <button
-                  key={label}
-                  type="button"
-                  id={`quick-login-${label.toLowerCase()}`}
-                  onClick={() => handleQuickLogin(u, p)}
-                  style={styles.quickBtn}
-                >
-                  <span style={{ ...styles.quickBadge, background: color + '18', color }}>{label[0]}</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={styles.quickBtnLabel}>{label}</div>
-                    <div style={styles.quickBtnPass}>{u} / {p}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
@@ -473,63 +438,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderTopColor: '#ffffff',
     borderRadius: '50%',
     animation: 'spin 0.7s linear infinite',
-  },
-  quickSection: {
-    marginTop: '22px',
-    paddingTop: '18px',
-    borderTop: '1px solid #f1f5f9',
-  },
-  quickLabel: {
-    display: 'block',
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    color: '#94a3b8',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-    marginBottom: '10px',
-    textAlign: 'center' as const,
-  },
-  quickGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '8px',
-  },
-  quickBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '8px 10px',
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    transition: 'all 120ms ease',
-    textAlign: 'left' as const,
-    fontFamily: 'inherit',
-  },
-  quickBadge: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '0.8125rem',
-    fontWeight: 700,
-    flexShrink: 0,
-  },
-  quickBtnLabel: {
-    fontSize: '0.8125rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    lineHeight: 1.2,
-  },
-  quickBtnPass: {
-    fontSize: '0.6875rem',
-    color: '#94a3b8',
-    fontFamily: "'JetBrains Mono', Consolas, monospace",
-    lineHeight: 1.2,
-    marginTop: '1px',
   },
   footer: {
     textAlign: 'center' as const,
