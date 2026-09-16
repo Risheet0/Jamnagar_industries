@@ -29,7 +29,8 @@ import {
   ArrowRight,
   Plus,
   Trash2,
-  Receipt
+  Receipt,
+  Camera
 } from 'lucide-react';
 
 interface WorkerDetailPageProps {
@@ -38,7 +39,7 @@ interface WorkerDetailPageProps {
 
 export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const { currentPath, navigate } = useNavigation();
-  const { getWorker, workers } = useWorkers();
+  const { getWorker, workers, updateWorker } = useWorkers();
   const {
     getAttendanceForDate,
     markAttendance,
@@ -67,6 +68,17 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
   const workerId = id || pathParts[2] || 'WRK-001';
 
   const worker = getWorker(workerId) || workers[0];
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !worker) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      updateWorker(worker.workerId || worker.id, { photo: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
 
   if (!worker) {
     return (
@@ -203,9 +215,41 @@ export const WorkerDetailPage: React.FC<WorkerDetailPageProps> = ({ id }) => {
             </Button>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
-            <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Worker ID</div>
-              <div style={{ marginTop: '2px' }}><span className="mono-code">{worker.workerId}</span></div>
+            {/* Worker Photo / Avatar */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: '14px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                {worker.photo ? (
+                  <img
+                    src={worker.photo}
+                    alt={worker.name}
+                    style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--color-brand-primary-border)' }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '72px', height: '72px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '24px', fontWeight: 700, color: '#fff', letterSpacing: '-0.02em'
+                  }}>
+                    {worker.name.split(' ').map(p => p[0]).slice(0, 2).join('')}
+                  </div>
+                )}
+                <label
+                  title="Upload photo"
+                  style={{
+                    position: 'absolute', bottom: 0, right: 0,
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: '#1e3a8a', border: '2px solid #fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: '#fff'
+                  }}
+                >
+                  <Camera size={12} />
+                  <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+              <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '10px', textAlign: 'center' }}>{worker.name}</div>
+              <div style={{ marginTop: '4px' }}><span className="mono-code" style={{ fontSize: '10px' }}>{worker.workerId}</span></div>
             </div>
             <div>
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Primary Skill</div>

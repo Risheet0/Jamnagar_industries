@@ -29,7 +29,7 @@ import {
 export const DashboardPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
   const { workers } = useWorkers();
-  const { getPresentCountForDate, getAbsentCountForDate } = useAttendance();
+  const { getPresentCountForDate, getAbsentCountForDate, getDaySummary } = useAttendance();
   const { materials } = useMaterials();
   const { products } = useProducts();
   const { jobs } = useProduction();
@@ -42,6 +42,7 @@ export const DashboardPage: React.FC = () => {
   const inactiveWorkers = workers.filter(w => w.status === 'Inactive').length;
   const presentWorkers = getPresentCountForDate(todayStr);
   const absentWorkers = getAbsentCountForDate(todayStr, workers);
+  const daySummary = getDaySummary(todayStr, workers.filter(w => w.status === 'Active'));
 
   const totalMaterials = materials.length;
   const lowStockMaterials = materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock');
@@ -145,6 +146,58 @@ export const DashboardPage: React.FC = () => {
               <span><strong>{failInspections.length}</strong> Open QC NCRs</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Today's Attendance Summary Widget ── */}
+      <div className="card" style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Users size={16} style={{ color: 'var(--color-brand-primary)' }} />
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Today's Attendance</span>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>{todayStr}</span>
+          </div>
+          <button
+            onClick={() => navigate(`/attendance/day/${todayStr}`)}
+            style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--color-brand-primary)', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            Mark Attendance <ArrowRight size={11} />
+          </button>
+        </div>
+
+        {/* Attendance stat pills */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '12px' }}>
+          {[
+            { label: 'Present', value: daySummary.present, color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+            { label: 'Half Day', value: daySummary.halfDay, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+            { label: 'Absent', value: daySummary.absent, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+            { label: 'On Leave', value: daySummary.onLeave, color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+            { label: 'Not Marked', value: daySummary.notMarked, color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' },
+          ].map(({ label, value, color, bg, border }) => (
+            <div key={label} style={{ padding: '10px 8px', background: bg, border: `1px solid ${border}`, borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 700, color, lineHeight: 1, fontFamily: 'monospace' }}>{value}</div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: color + 'bb', marginTop: '3px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Attendance progress bar */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+            <span>Attendance Rate</span>
+            <span style={{ fontWeight: 600, color: daySummary.totalWorkers > 0 && (daySummary.present / daySummary.totalWorkers) >= 0.8 ? '#059669' : '#d97706' }}>
+              {daySummary.totalWorkers > 0 ? Math.round((daySummary.present / daySummary.totalWorkers) * 100) : 0}% present
+            </span>
+          </div>
+          <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '9px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${daySummary.totalWorkers > 0 ? (daySummary.present / daySummary.totalWorkers) * 100 : 0}%`,
+              background: 'linear-gradient(90deg, #059669, #34d399)',
+              borderRadius: '9px',
+              transition: 'width 600ms ease'
+            }} />
+          </div>
         </div>
       </div>
 

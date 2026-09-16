@@ -176,11 +176,32 @@ export const WorkersPage: React.FC = () => {
       accessor: 'name',
       sortable: true,
       render: (w) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{w.name}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-            <span className="mono-code" style={{ fontSize: '11px' }}>{w.workerId}</span>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>• {w.mobile}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Avatar */}
+          <div style={{ flexShrink: 0 }}>
+            {w.photo ? (
+              <img
+                src={w.photo}
+                alt={w.name}
+                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--color-border-subtle)' }}
+              />
+            ) : (
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '11px', fontWeight: 700, color: '#fff', letterSpacing: '0.01em'
+              }}>
+                {w.name.split(' ').map((p: string) => p[0]).slice(0, 2).join('')}
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{w.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <span className="mono-code" style={{ fontSize: '11px' }}>{w.workerId}</span>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>• {w.mobile}</span>
+            </div>
           </div>
         </div>
       )

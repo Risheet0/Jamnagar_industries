@@ -17,6 +17,25 @@ export const ProductionJobsPage: React.FC = () => {
     ? jobs
     : jobs.filter(j => j.status === statusFilter);
 
+  // Summary counts — click any card to filter
+  const counts = {
+    total: jobs.length,
+    inProduction: jobs.filter(j => j.status === 'In Production').length,
+    qualityCheck: jobs.filter(j => j.status === 'Quality Check').length,
+    completed: jobs.filter(j => j.status === 'Completed').length,
+    delayed: jobs.filter(j => j.status === 'Delayed').length,
+    pending: jobs.filter(j => j.status === 'Pending').length,
+  };
+
+  const summaryStats = [
+    { label: 'Total Jobs', filterVal: 'ALL',           value: counts.total,        color: '#1e3a8a', bg: '#eff6ff', border: '#bfdbfe' },
+    { label: 'In Production', filterVal: 'In Production', value: counts.inProduction, color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
+    { label: 'Quality Check', filterVal: 'Quality Check', value: counts.qualityCheck, color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+    { label: 'Completed',     filterVal: 'Completed',     value: counts.completed,    color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
+    { label: 'Delayed',       filterVal: 'Delayed',       value: counts.delayed,      color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    { label: 'Pending',       filterVal: 'Pending',       value: counts.pending,      color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+  ];
+
   const columns: TableColumn<ProductionJob>[] = [
     {
       header: 'Job #',
@@ -127,6 +146,39 @@ export const ProductionJobsPage: React.FC = () => {
           </>
         }
       />
+
+      {/* ── Job Status Summary Bar (click to filter) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+        {summaryStats.map(({ label, filterVal, value, color, bg, border }) => {
+          const isActive = statusFilter === filterVal;
+          return (
+            <button
+              key={filterVal}
+              id={`job-filter-${filterVal.replace(/\s+/g, '-').toLowerCase()}`}
+              onClick={() => setStatusFilter(filterVal)}
+              style={{
+                padding: '12px 10px',
+                background: isActive ? bg : '#ffffff',
+                border: `1px solid ${isActive ? color : border}`,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 120ms ease',
+                boxShadow: isActive
+                  ? `0 0 0 2px ${color}30, 0 2px 8px ${color}15`
+                  : '0 1px 3px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ fontSize: '22px', fontWeight: 700, color, lineHeight: 1, fontFamily: 'monospace' }}>
+                {value}
+              </div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: color + 'bb', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {label}
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       <DataTable
         data={filteredJobs}

@@ -25,7 +25,8 @@ import {
   Clock,
   Trash2,
   FileSpreadsheet,
-  CheckCircle2
+  CheckCircle2,
+  Printer
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -71,6 +72,10 @@ export const PayrollReportPage: React.FC = () => {
   const [adjType, setAdjType] = useState<AdjustmentType>('Uppad');
   const [adjAmount, setAdjAmount] = useState<string>('');
   const [adjReason, setAdjReason] = useState<string>('');
+
+  // Salary slip modal state
+  const [salarySlipWorker, setSalarySlipWorker] = useState<WorkerPayrollSummary | null>(null);
+  const [isSalarySlipOpen, setIsSalarySlipOpen] = useState<boolean>(false);
 
   // 1. Resolve Period Start and End Dates
   const { periodStart, periodEnd, periodLabel } = useMemo(() => {
@@ -704,6 +709,15 @@ export const PayrollReportPage: React.FC = () => {
                         >
                           Adjust
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Printer size={12} />}
+                          onClick={() => { setSalarySlipWorker(s); setIsSalarySlipOpen(true); }}
+                          title="Print Salary Slip for this worker"
+                        >
+                          Slip
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -1028,6 +1042,139 @@ export const PayrollReportPage: React.FC = () => {
           </FormField>
         </div>
       </Modal>
+
+      {/* ── Salary Slip Modal ── */}
+      {salarySlipWorker && isSalarySlipOpen && (
+        <Modal
+          isOpen={isSalarySlipOpen}
+          onClose={() => setIsSalarySlipOpen(false)}
+          title={`Salary Slip — ${salarySlipWorker.workerName}`}
+          maxWidth="560px"
+          footer={
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
+              <Button variant="secondary" onClick={() => setIsSalarySlipOpen(false)}>Close</Button>
+              <Button
+                variant="primary"
+                icon={<Printer size={14} />}
+                onClick={() => {
+                  const printContent = document.getElementById('salary-slip-print-area');
+                  if (!printContent) return;
+                  const win = window.open('', '_blank', 'width=600,height=800');
+                  if (!win) return;
+                  win.document.write(`
+                    <html><head><title>Salary Slip - ${salarySlipWorker.workerName}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; font-size: 13px; color: #111; padding: 24px; }
+                      h2 { font-size: 18px; margin: 0 0 2px; }
+                      .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+                      .company { text-align: center; padding-bottom: 12px; border-bottom: 2px solid #1e3a8a; margin-bottom: 16px; }
+                      .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin-bottom: 16px; font-size: 12px; }
+                      .info-grid dt { color: #666; } .info-grid dd { font-weight: 600; margin: 0; }
+                      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+                      th { background: #f1f5f9; padding: 7px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+                      td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+                      .amt { text-align: right; font-weight: 600; }
+                      .deduct { color: #dc2626; } .bonus { color: #059669; }
+                      .net-row { background: #ecfdf5; font-weight: 700; font-size: 15px; }
+                      .sig { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 32px; font-size: 11px; color: #666; }
+                      .sig-line { border-top: 1px solid #333; padding-top: 6px; margin-top: 40px; }
+                      @media print { body { padding: 12px; } }
+                    </style></head><body>${printContent.innerHTML}</body></html>
+                  `);
+                  win.document.close();
+                  win.focus();
+                  setTimeout(() => { win.print(); }, 300);
+                }}
+              >
+                Print / Save PDF
+              </Button>
+            </div>
+          }
+        >
+          {/* Print Area */}
+          <div id="salary-slip-print-area">
+            {/* Company Header */}
+            <div className="company" style={{ textAlign: 'center', paddingBottom: '12px', borderBottom: '2px solid #1e3a8a', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 700, fontSize: '16px', color: '#1e3a8a' }}>Vadilal Engineering Industries</div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Industrial Plant & Operations Control</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '8px', color: '#0f172a' }}>
+                SALARY SLIP — {periodLabel}
+              </div>
+            </div>
+
+            {/* Worker Details */}
+            <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 16px', fontSize: '12px', marginBottom: '16px' }}>
+              <dt style={{ color: '#64748b' }}>Worker Name</dt>
+              <dd style={{ fontWeight: 600, margin: 0 }}>{salarySlipWorker.workerName}</dd>
+              <dt style={{ color: '#64748b' }}>Worker ID</dt>
+              <dd style={{ fontWeight: 600, margin: 0, fontFamily: 'monospace' }}>{salarySlipWorker.workerId}</dd>
+              <dt style={{ color: '#64748b' }}>Department</dt>
+              <dd style={{ fontWeight: 600, margin: 0 }}>{salarySlipWorker.department}</dd>
+              <dt style={{ color: '#64748b' }}>Pay Period</dt>
+              <dd style={{ fontWeight: 600, margin: 0 }}>{periodLabel}</dd>
+              <dt style={{ color: '#64748b' }}>Wage Type</dt>
+              <dd style={{ fontWeight: 600, margin: 0 }}>{salarySlipWorker.salaryType}</dd>
+              <dt style={{ color: '#64748b' }}>Days Worked</dt>
+              <dd style={{ fontWeight: 600, margin: 0 }}>{salarySlipWorker.presentDays}P / {salarySlipWorker.halfDays}H / {salarySlipWorker.absentDays}A</dd>
+            </dl>
+
+            {/* Earnings & Deductions Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '12px' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '8px 10px', textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569', fontWeight: 600 }}>Description</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#475569', fontWeight: 600 }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '8px 10px' }}>Base / Earned Salary</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>₹{salarySlipWorker.baseSalary.toLocaleString('en-IN')}</td>
+                </tr>
+                {salarySlipWorker.overtimePay > 0 && (
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 10px' }}>Overtime Pay ({salarySlipWorker.totalOvertimeHours} hrs)</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#1e3a8a' }}>+ ₹{salarySlipWorker.overtimePay.toLocaleString('en-IN')}</td>
+                  </tr>
+                )}
+                {salarySlipWorker.totalJama > 0 && (
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 10px' }}>Incentives / Bonus (Jama)</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#059669' }}>+ ₹{salarySlipWorker.totalJama.toLocaleString('en-IN')}</td>
+                  </tr>
+                )}
+                {salarySlipWorker.totalUppad > 0 && (
+                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 10px' }}>Advances / Deductions (Uppad)</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#dc2626' }}>- ₹{salarySlipWorker.totalUppad.toLocaleString('en-IN')}</td>
+                  </tr>
+                )}
+                {/* Net Row */}
+                <tr style={{ background: '#ecfdf5', borderTop: '2px solid #a7f3d0' }}>
+                  <td style={{ padding: '10px 10px', fontWeight: 700, fontSize: '14px' }}>NET PAYABLE</td>
+                  <td style={{ padding: '10px 10px', textAlign: 'right', fontWeight: 700, fontSize: '15px', color: '#065f46' }}>
+                    ₹{salarySlipWorker.netPayable.toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Signature Lines */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '32px', fontSize: '11px', color: '#64748b' }}>
+              <div>
+                <div style={{ borderTop: '1px solid #334155', paddingTop: '6px', marginTop: '40px', fontWeight: 600 }}>Worker Signature</div>
+              </div>
+              <div>
+                <div style={{ borderTop: '1px solid #334155', paddingTop: '6px', marginTop: '40px', fontWeight: 600 }}>Authorised Signatory</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>
+              Generated by Vadilal Engineering Industries ERP • {new Date().toLocaleDateString('en-IN')}
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
+
