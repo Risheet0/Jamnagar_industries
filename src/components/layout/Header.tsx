@@ -15,13 +15,14 @@ import {
 } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useAuth } from '../../context/AuthContext';
-import { mockCompanyProfile } from '../../mock/companyData';
+import { useCompany } from '../../context/CompanyContext';
 import { NotificationDropdown } from '../common/NotificationDropdown';
 import { LogOut } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { toggleSidebar, isSidebarCollapsed, openGlobalSearch, openQuickAdd, navigate } = useNavigation();
   const { user, logout } = useAuth();
+  const { companyProfile } = useCompany();
   const [isQuickAddDropdownOpen, setIsQuickAddDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const quickAddMenuRef = useRef<HTMLDivElement>(null);
@@ -117,7 +118,7 @@ export const Header: React.FC = () => {
         >
           <span className="offline-pulse" />
           <span style={{ fontWeight: 600 }}>Local Plant Mode</span>
-          <span style={{ color: 'var(--color-text-muted)' }}>• {mockCompanyProfile.shiftTiming.currentShift.split(' ')[0]}</span>
+          <span style={{ color: 'var(--color-text-muted)' }}>• {companyProfile.shiftTiming.currentShift.split(' ')[0]}</span>
         </div>
 
         {/* + Add New Dropdown */}
@@ -248,10 +249,10 @@ export const Header: React.FC = () => {
 
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {user?.username || mockCompanyProfile.currentUser.username}
+                {user?.username || companyProfile.currentUser.username}
               </span>
               <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                {user?.role || mockCompanyProfile.currentUser.role}
+                {user?.role || companyProfile.currentUser.role}
               </span>
             </div>
 
@@ -277,10 +278,10 @@ export const Header: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                    {user?.username || mockCompanyProfile.currentUser.name}
+                    {user?.username || companyProfile.currentUser.name}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                    {user?.role || mockCompanyProfile.currentUser.role}
+                    {user?.role || companyProfile.currentUser.role}
                   </div>
                 </div>
               </div>
@@ -288,14 +289,14 @@ export const Header: React.FC = () => {
               <div style={{ padding: '10px 0', fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Building2 size={14} style={{ color: 'var(--color-text-muted)' }} />
-                  <span style={{ fontWeight: 600 }}>{mockCompanyProfile.name}</span>
+                  <span style={{ fontWeight: 600 }}>{companyProfile.name}</span>
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingLeft: '20px' }}>
-                  {mockCompanyProfile.location}
+                  {companyProfile.location}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                   <HardHat size={14} style={{ color: 'var(--color-text-muted)' }} />
-                  <span>{mockCompanyProfile.shiftTiming.currentShift}</span>
+                  <span>{companyProfile.shiftTiming.currentShift}</span>
                 </div>
               </div>
 

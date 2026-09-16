@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCompany } from '../context/CompanyContext';
 import { AlertCircle, CheckCircle, ArrowRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const QUICK_LOGINS = [
@@ -11,6 +12,7 @@ const QUICK_LOGINS = [
 
 export const LoginPage: React.FC = () => {
   const { login, changePassword, user } = useAuth();
+  const { companyProfile } = useCompany();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,15 +30,15 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
-      setError('Please enter both username and password');
+      setError('Please enter both username and password.');
       return;
     }
-    setLoading(true);
     setError(null);
-    const res = await login(username, password);
+    setLoading(true);
+    const result = await login(username, password);
     setLoading(false);
-    if (!res.success) {
-      setError(res.error || 'Invalid credentials');
+    if (!result.success) {
+      setError(result.error || 'Invalid credentials. Please try again.');
     }
   };
 
@@ -49,23 +51,25 @@ export const LoginPage: React.FC = () => {
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPwError('Please fill in all fields');
+      setPwError('Please fill in all fields.');
       return;
     }
     if (newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters long');
+      setPwError('New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPwError('New passwords do not match');
+      setPwError('New passwords do not match.');
       return;
     }
-    setPwLoading(true);
+
     setPwError(null);
-    const res = await changePassword(currentPassword, newPassword);
+    setPwLoading(true);
+    const result = await changePassword(currentPassword, newPassword);
     setPwLoading(false);
-    if (!res.success) {
-      setPwError(res.error || 'Failed to update password');
+
+    if (!result.success) {
+      setPwError(result.error || 'Failed to update password.');
     } else {
       setPwSuccess(true);
     }
@@ -86,8 +90,8 @@ export const LoginPage: React.FC = () => {
               <path d="M6 26V14l6-4 6 4v4l6-4 6 4v12H24v-6h-4v6H12v-6H8v6H6z" fill="#1e3a8a" />
             </svg>
           </div>
-          <h1 style={styles.brandName}>Vadilal Engineering Industries</h1>
-          <p style={styles.brandSub}>Industrial Plant & Operations Control ERP</p>
+          <h1 style={styles.brandName}>{companyProfile.name}</h1>
+          <p style={styles.brandSub}>{companyProfile.location ? `${companyProfile.location} • Industrial ERP` : 'Industrial Plant & Operations Control ERP'}</p>
         </div>
 
         {/* Login Card */}

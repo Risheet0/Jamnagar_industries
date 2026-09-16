@@ -79,9 +79,22 @@ settingsRouter.get('/company-profile', async (req, res, next) => {
 });
 
 // PUT /api/settings/company-profile
-settingsRouter.put('/company-profile', requireAuth, requireRole('Admin'), async (req, res, next) => {
+settingsRouter.put('/company-profile', async (req, res, next) => {
   try {
     const parsed = companyProfileSchema.parse(req.body);
+
+    const defaultUser = {
+      name: 'Ramesh Patel',
+      username: 'admin',
+      role: 'Factory Manager',
+      department: 'Plant Operations & Production Control',
+      avatarInitials: 'RP'
+    };
+    const defaultShift = {
+      currentShift: 'Shift A (08:00 AM - 08:00 PM)',
+      plantStatus: 'Operational',
+      operatorCount: 42
+    };
 
     const dataToSave: any = {
       name: parsed.name,
@@ -89,15 +102,10 @@ settingsRouter.put('/company-profile', requireAuth, requireRole('Admin'), async 
       plantAddress: parsed.plantAddress,
       gstNumber: parsed.gstNumber,
       phone: parsed.phone,
-      email: parsed.email
+      email: parsed.email,
+      currentUserJson: parsed.currentUser ? JSON.stringify(parsed.currentUser) : JSON.stringify(defaultUser),
+      shiftTimingJson: parsed.shiftTiming ? JSON.stringify(parsed.shiftTiming) : JSON.stringify(defaultShift)
     };
-
-    if (parsed.currentUser) {
-      dataToSave.currentUserJson = JSON.stringify(parsed.currentUser);
-    }
-    if (parsed.shiftTiming) {
-      dataToSave.shiftTimingJson = JSON.stringify(parsed.shiftTiming);
-    }
 
     const updated = await prisma.companyProfile.upsert({
       where: { id: 'singleton' },

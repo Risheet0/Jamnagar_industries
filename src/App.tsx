@@ -10,6 +10,7 @@ import { QualityProvider } from './context/QualityContext';
 import { PayrollProvider } from './context/PayrollContext';
 import { FactoryCalendarProvider } from './context/FactoryCalendarContext';
 import { ToastProvider } from './context/ToastContext';
+import { CompanyProvider } from './context/CompanyContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
@@ -173,27 +174,29 @@ const AppRouter: React.FC = () => {
 export function App() {
   return (
     <AuthProvider>
-      <NavigationProvider>
-        <WorkerProvider>
-          <AttendanceProvider>
-            <FactoryCalendarProvider>
-              <MaterialsProvider>
-                <ProductsProvider>
-                  <ProductionProvider>
-                    <QualityProvider>
-                      <PayrollProvider>
-                        <ToastProvider>
-                          <AppRouter />
-                        </ToastProvider>
-                      </PayrollProvider>
-                    </QualityProvider>
-                  </ProductionProvider>
-                </ProductsProvider>
-              </MaterialsProvider>
-            </FactoryCalendarProvider>
-          </AttendanceProvider>
-        </WorkerProvider>
-      </NavigationProvider>
+      <CompanyProvider>
+        <NavigationProvider>
+          <WorkerProvider>
+            <AttendanceProvider>
+              <FactoryCalendarProvider>
+                <MaterialsProvider>
+                  <ProductsProvider>
+                    <ProductionProvider>
+                      <QualityProvider>
+                        <PayrollProvider>
+                          <ToastProvider>
+                            <AppRouter />
+                          </ToastProvider>
+                        </PayrollProvider>
+                      </QualityProvider>
+                    </ProductionProvider>
+                  </ProductsProvider>
+                </MaterialsProvider>
+              </FactoryCalendarProvider>
+            </AttendanceProvider>
+          </WorkerProvider>
+        </NavigationProvider>
+      </CompanyProvider>
     </AuthProvider>
   );
 }

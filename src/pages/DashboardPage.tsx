@@ -10,7 +10,7 @@ import { useMaterials } from '../context/MaterialsContext';
 import { useProducts } from '../context/ProductsContext';
 import { useProduction } from '../context/ProductionContext';
 import { useQuality } from '../context/QualityContext';
-import { mockCompanyProfile } from '../mock/companyData';
+import { useCompany } from '../context/CompanyContext';
 import {
   Users,
   Boxes,
@@ -34,6 +34,7 @@ export const DashboardPage: React.FC = () => {
   const { products } = useProducts();
   const { jobs } = useProduction();
   const { inspections } = useQuality();
+  const { companyProfile } = useCompany();
 
   const todayStr = getTodayDateString();
   const totalWorkers = workers.length;
@@ -82,7 +83,7 @@ export const DashboardPage: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         title="Plant Operations Dashboard"
-        description={`${mockCompanyProfile.name} • ${mockCompanyProfile.location} • Standalone Industrial Control`}
+        description={`${companyProfile.name} • ${companyProfile.location} • Standalone Industrial Control`}
         actions={
           <>
             <Button
@@ -124,18 +125,18 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>Current Shift: {mockCompanyProfile.shiftTiming.currentShift}</span>
+              <span>Current Shift: {companyProfile.shiftTiming.currentShift}</span>
               <StatusBadge status="Active" size="sm" icon={true} />
             </div>
             <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-              Plant Status: <strong>{mockCompanyProfile.shiftTiming.plantStatus}</strong> • Floor Operators Present Today: <strong className="tabular-nums" style={{ color: '#38bdf8' }}>{presentWorkers} / {activeWorkers} Active</strong> ({totalWorkers} on roster)
+              Plant Status: <strong>{companyProfile.shiftTiming.plantStatus}</strong> • Floor Operators Present Today: <strong className="tabular-nums" style={{ color: '#38bdf8' }}>{presentWorkers} / {activeWorkers} Active</strong> ({totalWorkers} on roster)
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: '#cbd5e1', flexWrap: 'wrap' }}>
           <div>
-            <span style={{ color: '#94a3b8' }}>GSTIN:</span> <span className="mono-code mono-code-contrast">{mockCompanyProfile.gstNumber}</span>
+            <span style={{ color: '#94a3b8' }}>GSTIN:</span> <span className="mono-code mono-code-contrast">{companyProfile.gstNumber}</span>
           </div>
           <div>
             <span style={{ color: '#94a3b8' }}>Est. Monthly Wages:</span> <strong className="tabular-nums" style={{ color: '#38bdf8' }}>₹{totalMonthlyWage.toLocaleString('en-IN')}</strong>

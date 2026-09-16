@@ -18,6 +18,7 @@ import { useNavigation } from '../../context/NavigationContext';
 import { useWorkers } from '../../context/WorkerContext';
 import { useMaterials } from '../../context/MaterialsContext';
 import { useProduction } from '../../context/ProductionContext';
+import { useCompany } from '../../context/CompanyContext';
 
 interface NavItemConfig {
   id: string;
@@ -34,6 +35,7 @@ export const Sidebar: React.FC = () => {
   const { workers } = useWorkers();
   const { materials } = useMaterials();
   const { jobs } = useProduction();
+  const { companyProfile } = useCompany();
 
   // Compute live badges from reactive dataset
   const lowStockCount = materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length;
@@ -177,11 +179,22 @@ export const Sidebar: React.FC = () => {
 
         {!isSidebarCollapsed && (
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-sidebar-text-bright)', letterSpacing: '0.02em', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              VADILAL
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 700,
+                color: 'var(--color-sidebar-text-bright)',
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                overflow: 'hidden'
+              }}
+              title={companyProfile.name}
+            >
+              {companyProfile.name}
             </span>
-            <span style={{ fontSize: '10px', color: 'var(--color-sidebar-text)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-              Engineering ERP
+            <span style={{ fontSize: '10px', color: 'var(--color-sidebar-text)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {companyProfile.location ? `${companyProfile.location} • ERP` : 'Industrial ERP'}
             </span>
           </div>
         )}

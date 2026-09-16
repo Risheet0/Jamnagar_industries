@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Button } from '../components/common/Button';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -16,7 +16,7 @@ import { useQuality } from '../context/QualityContext';
 import { useProducts } from '../context/ProductsContext';
 import { useProduction } from '../context/ProductionContext';
 import { usePayroll } from '../context/PayrollContext';
-import { mockCompanyProfile } from '../mock/companyData';
+import { useCompany } from '../context/CompanyContext';
 import { downloadJsonFile } from '../utils/exportCsv';
 import {
   Building2,
@@ -47,6 +47,7 @@ export const SettingsPage: React.FC = () => {
   const { products } = useProducts();
   const { jobs } = useProduction();
   const { shiftConfig, updateShiftConfig, adjustments } = usePayroll();
+  const { companyProfile, updateCompanyProfile } = useCompany();
 
   const [activeTab, setActiveTab] = useState<'company' | 'shifts' | 'backup' | 'design-system'>('company');
 
@@ -67,13 +68,25 @@ export const SettingsPage: React.FC = () => {
 
   // Company profile form state
   const [companyData, setCompanyData] = useState({
-    name: mockCompanyProfile.name,
-    location: mockCompanyProfile.location,
-    plantAddress: mockCompanyProfile.plantAddress,
-    gstNumber: mockCompanyProfile.gstNumber,
-    phone: mockCompanyProfile.phone,
-    email: mockCompanyProfile.email,
+    name: companyProfile.name,
+    location: companyProfile.location,
+    plantAddress: companyProfile.plantAddress,
+    gstNumber: companyProfile.gstNumber,
+    phone: companyProfile.phone,
+    email: companyProfile.email,
   });
+
+  // Keep local form in sync when companyProfile changes
+  useEffect(() => {
+    setCompanyData({
+      name: companyProfile.name,
+      location: companyProfile.location,
+      plantAddress: companyProfile.plantAddress,
+      gstNumber: companyProfile.gstNumber,
+      phone: companyProfile.phone,
+      email: companyProfile.email,
+    });
+  }, [companyProfile]);
 
   const storageEntities: StorageEntityConfig[] = [
     { key: 'workers', storageKey: 'jamnagar_erp_workers_v2', label: 'Workers & Karigars', count: workers.length },
@@ -87,11 +100,12 @@ export const SettingsPage: React.FC = () => {
     { key: 'salaryAdjustments', storageKey: 'jamnagar_erp_adjustments_v1', label: 'Salary Adjustments (Uppad/Jama)', count: adjustments.length }
   ];
 
-  const handleSaveCompany = (e: React.FormEvent) => {
+  const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
+    await updateCompanyProfile(companyData);
     showToast({
       title: 'Company Settings Saved',
-      message: 'Plant profile and GST configurations updated in local storage.',
+      message: `Plant profile and company name updated to "${companyData.name}".`,
       type: 'success'
     });
   };
@@ -102,7 +116,7 @@ export const SettingsPage: React.FC = () => {
     const payload = {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
-      appName: 'Jamnagar Industry ERP - Vadilal Engineering',
+      appName: `Jamnagar Industry ERP - ${companyProfile.name}`,
       company: companyData,
       data: {
         workers: workers,
@@ -350,7 +364,7 @@ export const SettingsPage: React.FC = () => {
                 <FormField
                   label="Current Logged In Role"
                   disabled
-                  value={`${mockCompanyProfile.currentUser.role} (${mockCompanyProfile.currentUser.username})`}
+                  value={`${companyProfile.currentUser.role} (${companyProfile.currentUser.username})`}
                 />
               </div>
             </div>
