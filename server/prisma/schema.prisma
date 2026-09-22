@@ -72,6 +72,10 @@ model StockMovement {
   heatNumber   String?
   notes        String?
   createdAt    DateTime @default(now())
+
+  @@index([materialId])
+  @@index([materialCode])
+  @@index([date])
 }
 
 model Product {
@@ -92,6 +96,9 @@ model Product {
   category           String
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
 }
 
 model ProductionJob {
@@ -113,6 +120,11 @@ model ProductionJob {
   notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  @@index([status])
+  @@index([assignedWorkerId])
+  @@index([productCode])
+  @@index([dueDate])
 }
 
 model QualityInspection {
@@ -133,6 +145,10 @@ model QualityInspection {
   date              String   // YYYY-MM-DD
   remarks           String?
   createdAt         DateTime @default(now())
+
+  @@index([jobId])
+  @@index([result])
+  @@index([date])
 }
 
 model AttendanceRecord {
@@ -146,6 +162,8 @@ model AttendanceRecord {
   updatedAt     DateTime @updatedAt
 
   @@id([workerId, date])
+  @@index([date])
+  @@index([status])
 }
 
 model LeaveRecord {
@@ -159,6 +177,9 @@ model LeaveRecord {
   appliedDate     String   // YYYY-MM-DD
   includeWeekends Boolean  @default(false)
   createdAt       DateTime @default(now())
+
+  @@index([workerId])
+  @@index([startDate, endDate])
 }
 
 model SalaryAdjustment {
@@ -169,6 +190,9 @@ model SalaryAdjustment {
   amount    Float
   reason    String?
   createdAt DateTime @default(now())
+
+  @@index([workerId])
+  @@index([date])
 }
 
 model ShiftConfig {
@@ -189,6 +213,8 @@ model FactoryCalendarEntry {
   isCustomOverride Boolean  @default(false)
   declaredBy       String?
   createdAt        DateTime @default(now())
+
+  @@index([date])
 }
 
 model PlantOperationalConfig {
@@ -210,3 +236,4 @@ model CompanyProfile {
   currentUserJson  String // Serialized JSON of currentUser object
   shiftTimingJson  String // Serialized JSON of shiftTiming object
 }
+

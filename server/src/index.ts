@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import connectSqlite3 from 'connect-sqlite3';
 import path from 'path';
@@ -24,6 +26,33 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Security Headers with Helmet
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Allows cross-origin assets for LAN/dev
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
+
+// Global Rate Limiter: 1500 requests per 15 mins
+const globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', globalApiLimiter);
+
+// Auth Login Rate Limiter: 30 attempts per 15 mins to prevent brute-force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again after 15 minutes.' }
+});
 
 // Ensure prisma dir exists for sessions.db
 const prismaDir = path.resolve(__dirname, '../prisma');
@@ -102,6 +131,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount API Routes
+app.use('/api/auth/login', authLimiter);
 app.use('/api/auth', authRouter);
 app.use('/api/workers', workersRouter);
 app.use('/api/materials', materialsRouter);
