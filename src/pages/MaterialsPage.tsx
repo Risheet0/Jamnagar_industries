@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
+import { SummaryCard } from '../components/common/SummaryCard';
 import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { Material, TableColumn } from '../types';
-import { PackagePlus, ArrowDownLeft, ArrowUpRight, Eye } from 'lucide-react';
+import { PackagePlus, ArrowDownLeft, ArrowUpRight, Eye, AlertTriangle, Boxes } from 'lucide-react';
 
 export const MaterialsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
@@ -146,44 +147,69 @@ export const MaterialsPage: React.FC = () => {
         }
       />
 
-      {/* Sub-Navigation Tabs */}
-      <div className="card" style={{ padding: 0 }}>
-        <div className="tabs-header">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveTab('all')}
-          >
-            <span>All Materials</span>
-            <span className="tab-badge">{materials.length}</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'low' ? 'active' : ''}`}
-            onClick={() => setActiveTab('low')}
-          >
-            <span>Low / Out of Stock</span>
-            <span className="tab-badge" style={{ backgroundColor: 'var(--color-status-warning-bg)', color: 'var(--color-status-warning-text)' }}>
-              {materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length}
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'brass' ? 'active' : ''}`}
-            onClick={() => setActiveTab('brass')}
-          >
-            <span>Brass Section</span>
-            <span className="tab-badge">{materials.filter(m => m.type.includes('Brass')).length}</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'steel' ? 'active' : ''}`}
-            onClick={() => setActiveTab('steel')}
-          >
-            <span>Steel & Alloys</span>
-            <span className="tab-badge">{materials.filter(m => m.type.includes('Steel')).length}</span>
-          </button>
-        </div>
+      {/* 3D Material Stock Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+        <SummaryCard
+          title="Total Raw Materials"
+          value={`${materials.length} Items`}
+          subtitle="Master brass, copper & steel stock"
+          image3d="/assets/3d/warehouse_racks_3d.jpg"
+          onClick={() => setActiveTab('all')}
+        />
+        <SummaryCard
+          title="Low Stock Warning"
+          value={`${materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length} Items`}
+          subtitle="Below safety buffer threshold"
+          icon={<AlertTriangle size={18} />}
+          statusTag={{ label: 'Restock Required', variant: 'warning' }}
+          onClick={() => setActiveTab('low')}
+        />
+        <SummaryCard
+          title="Brass Raw Stock"
+          value={`${materials.filter(m => m.type.includes('Brass')).length} Grades`}
+          subtitle="CW614N, IS 319 Free Cutting"
+          image3d="/assets/3d/brass_fitting_3d.jpg"
+          onClick={() => setActiveTab('brass')}
+        />
+        <SummaryCard
+          title="Steel & Alloys"
+          value={`${materials.filter(m => m.type.includes('Steel')).length} Grades`}
+          subtitle="SS 304, AISI 316, EN8 bars"
+          icon={<Boxes size={18} />}
+          onClick={() => setActiveTab('steel')}
+        />
+      </div>
+
+      {/* Sub-Navigation Glass Pills */}
+      <div className="glass-pill-nav" style={{ width: 'fit-content' }}>
+        <button
+          type="button"
+          className={`glass-pill-tab ${activeTab === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          <span>All Materials ({materials.length})</span>
+        </button>
+        <button
+          type="button"
+          className={`glass-pill-tab ${activeTab === 'low' ? 'active-orange' : ''}`}
+          onClick={() => setActiveTab('low')}
+        >
+          <span>Low / Out of Stock ({materials.filter(m => m.status === 'Low Stock' || m.status === 'Out of Stock').length})</span>
+        </button>
+        <button
+          type="button"
+          className={`glass-pill-tab ${activeTab === 'brass' ? 'active' : ''}`}
+          onClick={() => setActiveTab('brass')}
+        >
+          <span>Brass Section ({materials.filter(m => m.type.includes('Brass')).length})</span>
+        </button>
+        <button
+          type="button"
+          className={`glass-pill-tab ${activeTab === 'steel' ? 'active' : ''}`}
+          onClick={() => setActiveTab('steel')}
+        >
+          <span>Steel & Alloys ({materials.filter(m => m.type.includes('Steel')).length})</span>
+        </button>
       </div>
 
       {/* Data Table */}

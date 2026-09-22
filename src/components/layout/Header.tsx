@@ -49,8 +49,10 @@ export const Header: React.FC = () => {
   return (
     <header style={{
       height: 'var(--header-height)',
-      backgroundColor: 'var(--color-bg-surface)',
-      borderBottom: '1px solid var(--color-border-subtle)',
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -58,7 +60,7 @@ export const Header: React.FC = () => {
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      boxShadow: 'var(--shadow-sm)'
+      boxShadow: '0 4px 20px -4px rgba(15, 23, 42, 0.05)'
     }}>
       {/* Left Section: Sidebar Toggle & Global Search */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, maxWidth: '640px' }}>
@@ -67,7 +69,7 @@ export const Header: React.FC = () => {
           onClick={toggleSidebar}
           className="btn btn-ghost btn-icon-only"
           title={isSidebarCollapsed ? 'Expand Navigation Sidebar' : 'Collapse Navigation Sidebar'}
-          style={{ color: 'var(--color-text-secondary)' }}
+          style={{ color: 'var(--color-text-secondary)', borderRadius: '10px' }}
         >
           <Menu size={20} />
         </button>
@@ -79,20 +81,29 @@ export const Header: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            backgroundColor: 'var(--color-bg-subtle)',
-            border: '1px solid var(--color-border-default)',
-            borderRadius: 'var(--radius-md)',
-            padding: '6px 12px',
+            backgroundColor: 'rgba(248, 250, 252, 0.85)',
+            border: '1px solid rgba(203, 213, 225, 0.8)',
+            borderRadius: 'var(--radius-full)',
+            padding: '6px 14px',
             width: '100%',
             maxWidth: '420px',
             cursor: 'pointer',
-            transition: 'border-color 0.15s, background-color 0.15s'
+            transition: 'all 0.2s ease',
+            boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)'
           }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-brand-primary)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border-default)'}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--color-brand-accent)';
+            e.currentTarget.style.backgroundColor = '#ffffff';
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(2, 132, 199, 0.12)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(203, 213, 225, 0.8)';
+            e.currentTarget.style.backgroundColor = 'rgba(248, 250, 252, 0.85)';
+            e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.03)';
+          }}
         >
           <Search size={15} style={{ color: 'var(--color-text-muted)' }} />
-          <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Search worker, material, product, job...
           </span>
           <span className="kbd-shortcut" style={{ flexShrink: 0 }}>Ctrl K</span>
@@ -107,18 +118,19 @@ export const Header: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '7px',
-            backgroundColor: 'var(--color-bg-subtle)',
-            border: '1px solid var(--color-border-subtle)',
-            padding: '4px 10px',
+            backgroundColor: 'rgba(236, 253, 245, 0.9)',
+            border: '1px solid #a7f3d0',
+            padding: '4px 12px',
             borderRadius: 'var(--radius-full)',
             fontSize: '11px',
-            color: 'var(--color-text-secondary)'
+            color: '#065f46',
+            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.1)'
           }}
           title="System operating in offline standalone industrial mode on local storage"
         >
           <span className="offline-pulse" />
-          <span style={{ fontWeight: 600 }}>Local Plant Mode</span>
-          <span style={{ color: 'var(--color-text-muted)' }}>• {companyProfile.shiftTiming.currentShift.split(' ')[0]}</span>
+          <span style={{ fontWeight: 600 }}>Plant Online</span>
+          <span style={{ color: '#047857' }}>• {companyProfile.shiftTiming.currentShift.split(' ')[0]}</span>
         </div>
 
         {/* + Add New Dropdown */}

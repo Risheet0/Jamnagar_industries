@@ -381,6 +381,8 @@ export const QualityPage: React.FC = () => {
           value={totalInspections}
           subtitle="Total batches verified"
           icon={<ShieldCheck size={18} />}
+          image3d="/assets/3d/quality_gauge_3d.jpg"
+          image3dAlt="Laser QC Micrometer Gauge"
         />
         <SummaryCard
           title="First-Pass Quality Yield"
@@ -405,51 +407,81 @@ export const QualityPage: React.FC = () => {
         />
       </div>
 
-      {/* Sub-Navigation Tabs */}
-      <div className="card" style={{ padding: 0 }}>
-        <div className="tabs-header">
+      {/* Sub-Navigation Glass Pills */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="glass-pill-nav">
           <button
             type="button"
-            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+            className={`glass-pill-tab ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
             <Layers size={14} />
             <span>All Inspections</span>
-            <span className="tab-badge">{inspections.length}</span>
+            <span style={{
+              padding: '2px 7px',
+              borderRadius: '999px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: activeTab === 'all' ? 'var(--color-brand-primary)' : 'rgba(0,0,0,0.06)',
+              color: activeTab === 'all' ? '#ffffff' : 'var(--color-text-secondary)',
+            }}>
+              {inspections.length}
+            </span>
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === 'pass' ? 'active' : ''}`}
+            className={`glass-pill-tab ${activeTab === 'pass' ? 'active' : ''}`}
             onClick={() => setActiveTab('pass')}
           >
             <span>Passed Batches</span>
             <span
-              className="tab-badge"
-              style={{ backgroundColor: 'var(--color-status-success-bg)', color: 'var(--color-status-success-text)' }}
+              style={{
+                padding: '2px 7px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 700,
+                backgroundColor: 'var(--color-status-success-bg)',
+                color: 'var(--color-status-success-text)'
+              }}
             >
               {passedInspections}
             </span>
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === 'fail' ? 'active' : ''}`}
+            className={`glass-pill-tab ${activeTab === 'fail' ? 'active' : ''}`}
             onClick={() => setActiveTab('fail')}
           >
             <span>Failed Batches (NCR)</span>
             <span
-              className="tab-badge"
-              style={{ backgroundColor: 'var(--color-status-danger-bg)', color: 'var(--color-status-danger-text)' }}
+              style={{
+                padding: '2px 7px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 700,
+                backgroundColor: 'var(--color-status-danger-bg)',
+                color: 'var(--color-status-danger-text)'
+              }}
             >
               {failedInspections}
             </span>
           </button>
           <button
             type="button"
-            className={`tab-btn ${activeTab === 'first-piece' ? 'active' : ''}`}
+            className={`glass-pill-tab ${activeTab === 'first-piece' ? 'active' : ''}`}
             onClick={() => setActiveTab('first-piece')}
           >
             <span>First-Piece Clearances</span>
-            <span className="tab-badge">
+            <span
+              style={{
+                padding: '2px 7px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 700,
+                backgroundColor: 'rgba(0,0,0,0.06)',
+                color: 'var(--color-text-secondary)'
+              }}
+            >
               {inspections.filter(i => i.inspectionType === 'First-Piece').length}
             </span>
           </button>

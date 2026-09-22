@@ -11,8 +11,7 @@ import {
   Settings,
   Flame,
   ChevronLeft,
-  ChevronRight,
-  Database
+  ChevronRight
 } from 'lucide-react';
 import { useNavigation } from '../../context/NavigationContext';
 import { useWorkers } from '../../context/WorkerContext';
@@ -229,41 +228,45 @@ export const Sidebar: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                padding: isSidebarCollapsed ? '10px 0' : '9px 12px',
+                padding: isSidebarCollapsed ? '10px 0' : '10px 14px',
                 justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
-                backgroundColor: active ? 'var(--color-sidebar-surface)' : 'transparent',
-                color: active ? 'var(--color-sidebar-text-bright)' : 'var(--color-sidebar-text)',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
+                backgroundColor: active ? 'rgba(56, 189, 248, 0.12)' : 'transparent',
+                color: active ? '#ffffff' : 'var(--color-sidebar-text)',
+                border: active ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent',
+                borderRadius: '10px',
                 cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
+                transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
-                textAlign: 'left'
+                textAlign: 'left',
+                boxShadow: active ? '0 4px 16px rgba(14, 165, 233, 0.15)' : 'none',
               }}
               onMouseEnter={e => {
                 if (!active) {
-                  e.currentTarget.style.backgroundColor = 'rgba(30, 41, 59, 0.5)';
-                  e.currentTarget.style.color = '#e2e8f0';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.color = '#f8fafc';
+                  e.currentTarget.style.transform = 'translateX(2px)';
                 }
               }}
               onMouseLeave={e => {
                 if (!active) {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = 'var(--color-sidebar-text)';
+                  e.currentTarget.style.transform = 'none';
                 }
               }}
             >
-              {/* Active Indicator Bar */}
+              {/* Active Glow Bar */}
               {active && (
                 <div
                   style={{
                     position: 'absolute',
                     left: 0,
-                    top: '6px',
-                    bottom: '6px',
+                    top: '8px',
+                    bottom: '8px',
                     width: '3px',
-                    backgroundColor: 'var(--color-sidebar-active-indicator)',
-                    borderRadius: '0 2px 2px 0'
+                    backgroundColor: '#38bdf8',
+                    borderRadius: '0 4px 4px 0',
+                    boxShadow: '0 0 8px #38bdf8'
                   }}
                 />
               )}
@@ -272,7 +275,8 @@ export const Sidebar: React.FC = () => {
                 color: active ? '#38bdf8' : 'currentColor',
                 display: 'inline-flex',
                 alignItems: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                filter: active ? 'drop-shadow(0 0 6px rgba(56,189,248,0.5))' : 'none'
               }}>
                 {item.icon}
               </span>
@@ -284,7 +288,8 @@ export const Sidebar: React.FC = () => {
                   flex: 1,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  textOverflow: 'ellipsis',
+                  letterSpacing: active ? '-0.01em' : 'normal'
                 }}>
                   {item.label}
                 </span>
@@ -295,7 +300,7 @@ export const Sidebar: React.FC = () => {
                   style={{
                     fontSize: '10px',
                     fontWeight: 700,
-                    padding: '1px 6px',
+                    padding: '2px 7px',
                     borderRadius: 'var(--radius-full)',
                     backgroundColor: item.badgeVariant === 'warning' ? '#78350f' : item.badgeVariant === 'danger' ? '#7f1d1d' : item.badgeVariant === 'info' ? '#075985' : '#334155',
                     color: item.badgeVariant === 'warning' ? '#fde68a' : item.badgeVariant === 'danger' ? '#fecaca' : item.badgeVariant === 'info' ? '#bae6fd' : '#cbd5e1',
@@ -328,13 +333,14 @@ export const Sidebar: React.FC = () => {
             color: 'var(--color-sidebar-text)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            border: '1px solid rgba(255,255,255,0.05)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Database size={13} style={{ color: '#38bdf8' }} />
-              <span>Offline Database</span>
+              <span className="live-dot pulse" style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }} />
+              <span style={{ fontWeight: 600, color: '#f8fafc' }}>3D Twin Active</span>
             </div>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>v1.0.0</span>
+            <span style={{ color: '#38bdf8', fontWeight: 600, fontSize: '10px' }}>v2.4 PRO</span>
           </div>
         )}
 

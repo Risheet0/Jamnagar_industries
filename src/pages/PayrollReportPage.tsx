@@ -441,6 +441,8 @@ export const PayrollReportPage: React.FC = () => {
           value={`₹${totals.totalGross.toLocaleString('en-IN')}`}
           subtitle={`Base ₹${totals.totalBase.toLocaleString('en-IN')} + OT ₹${totals.totalOTPay.toLocaleString('en-IN')}`}
           icon={<HardHat size={18} />}
+          image3d="/assets/3d/payroll_gold_3d.jpg"
+          image3dAlt="Wage & Advance Ledger"
         />
         <SummaryCard
           title="Overtime Payout"

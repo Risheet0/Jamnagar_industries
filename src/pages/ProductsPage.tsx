@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
+import { SummaryCard } from '../components/common/SummaryCard';
 import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
@@ -7,12 +8,19 @@ import { DrawingViewerModal } from '../components/common/DrawingViewerModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts } from '../context/ProductsContext';
 import { Product, TableColumn } from '../types';
-import { Plus, Eye, FileCode } from 'lucide-react';
+import { Plus, Eye, FileCode, Cpu, Layers } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
   const { products } = useProducts();
   const [selectedDrawingProduct, setSelectedDrawingProduct] = useState<Product | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+
+  const filteredProducts = categoryFilter === 'ALL'
+    ? products
+    : products.filter(p => p.category === categoryFilter);
+
+  const categories = Array.from(new Set(products.map(p => p.category)));
 
   const columns: TableColumn<Product>[] = [
     {
@@ -121,11 +129,61 @@ export const ProductsPage: React.FC = () => {
         }
       />
 
+      {/* 3D Component Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+        <SummaryCard
+          title="Master Components"
+          value={`${products.length} Models`}
+          subtitle="Active production CNC parts"
+          image3d="/assets/3d/brass_fitting_3d.jpg"
+          onClick={() => setCategoryFilter('ALL')}
+        />
+        <SummaryCard
+          title="Fittings & Flare Adapters"
+          value={`${products.filter(p => p.category.includes('Fitting')).length} Items`}
+          subtitle="BSPT/NPT hex connectors"
+          icon={<Cpu size={18} />}
+          onClick={() => setCategoryFilter('Fittings')}
+        />
+        <SummaryCard
+          title="Valves & Spindles"
+          value={`${products.filter(p => p.category.includes('Valve')).length} Items`}
+          subtitle="High pressure SS & brass stems"
+          icon={<Layers size={18} />}
+          onClick={() => setCategoryFilter('Valves')}
+        />
+        <SummaryCard
+          title="Active Production"
+          value={`${products.filter(p => p.status === 'Active Production').length} Active`}
+          subtitle="Running in CNC / VMC bays"
+          statusTag={{ label: 'Live Catalog', variant: 'success' }}
+        />
+      </div>
+
       <DataTable
-        data={products}
+        data={filteredProducts}
         columns={columns}
         searchPlaceholder="Search product by code, name, drawing, material, category..."
         onRowClick={(row) => navigate(`/products/${row.id}`)}
+        toolbarExtra={
+          <div className="glass-pill-nav">
+            <button
+              className={`glass-pill-tab ${categoryFilter === 'ALL' ? 'active' : ''}`}
+              onClick={() => setCategoryFilter('ALL')}
+            >
+              All Categories ({products.length})
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                className={`glass-pill-tab ${categoryFilter === cat ? 'active' : ''}`}
+                onClick={() => setCategoryFilter(cat)}
+              >
+                {cat} ({products.filter(p => p.category === cat).length})
+              </button>
+            ))}
+          </div>
+        }
         actions={(row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
             <button

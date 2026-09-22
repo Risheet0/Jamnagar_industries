@@ -20,7 +20,6 @@ import {
   UserCheck,
   UserX,
   Clock,
-  Users,
   CalendarDays
 } from 'lucide-react';
 
@@ -289,13 +288,13 @@ export const WorkersPage: React.FC = () => {
         }
       />
 
-      {/* Attendance & Workforce Headcount Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+      {/* Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
         <SummaryCard
-          title="Floor Present Today"
-          value={`${presentCount} Operators`}
-          subtitle={`${activeCount > 0 ? Math.round((presentCount / activeCount) * 100) : 0}% floor attendance rate`}
-          icon={<UserCheck size={18} />}
+          title="Present Today"
+          value={`${presentCount} Karigars`}
+          subtitle={`${activeCount > 0 ? Math.round((presentCount / activeCount) * 100) : 0}% shift attendance`}
+          image3d="/assets/3d/worker_operator_3d.jpg"
           statusTag={{ label: `${presentCount} Present`, variant: 'success' }}
         />
         <SummaryCard
@@ -316,7 +315,7 @@ export const WorkersPage: React.FC = () => {
           title="Total Workforce"
           value={`${workers.length} Total`}
           subtitle={`${activeCount} active on payroll`}
-          icon={<Users size={18} />}
+          image3d="/assets/3d/worker_operator_3d.jpg"
           statusTag={{ label: `${activeCount} Active`, variant: 'info' }}
         />
       </div>
@@ -331,23 +330,16 @@ export const WorkersPage: React.FC = () => {
           setIsDetailModalOpen(true);
         }}
         toolbarExtra={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Skill Filter:</span>
-            <select
-              value={skillFilter}
-              onChange={e => setSkillFilter(e.target.value)}
-              className="form-select"
-              style={{ width: '180px', padding: '4px 8px', fontSize: '12px' }}
-            >
-              <option value="ALL">All Skills ({workers.length})</option>
-              <option value="CNC Operator">CNC Operator</option>
-              <option value="VMC Specialist">VMC Specialist</option>
-              <option value="Lathe Master">Lathe Master</option>
-              <option value="Tool & Die Maker">Tool & Die Maker</option>
-              <option value="Welder / Fabricator">Welder / Fabricator</option>
-              <option value="Assembly Specialist">Assembly Specialist</option>
-              <option value="Helper / Trainee">Helper / Trainee</option>
-            </select>
+          <div className="glass-pill-nav">
+            {['ALL', 'CNC Operator', 'VMC Specialist', 'Lathe Master', 'Tool & Die Maker'].map(sk => (
+              <button
+                key={sk}
+                className={`glass-pill-tab ${skillFilter === sk ? 'active' : ''}`}
+                onClick={() => setSkillFilter(sk)}
+              >
+                {sk === 'ALL' ? `All Skills (${workers.length})` : sk}
+              </button>
+            ))}
           </div>
         }
         actions={(row) => (

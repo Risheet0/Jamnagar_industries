@@ -15,7 +15,6 @@ import { useCompany } from '../context/CompanyContext';
 import {
   Users,
   Boxes,
-  Cpu,
   Factory,
   AlertTriangle,
   ArrowRight,
@@ -23,7 +22,6 @@ import {
   Plus,
   ArrowDownLeft,
   ShieldAlert,
-  Clock,
   CheckCircle2,
   Layers,
   Sparkles
@@ -335,7 +333,7 @@ export const DashboardPage: React.FC = () => {
             title="Total Active Workforce"
             value={`${activeWorkers}`}
             subtitle={`${totalWorkers} total roster (${onLeaveWorkers} leave, ${inactiveWorkers} inactive)`}
-            icon={<Users size={18} />}
+            image3d="/assets/3d/worker_operator_3d.jpg"
             trend={{ value: `${totalWorkers > 0 ? Math.round((activeWorkers / totalWorkers) * 100) : 100}%`, isPositive: true, label: 'employed' }}
             onClick={() => navigate('/workers')}
           />
@@ -344,7 +342,7 @@ export const DashboardPage: React.FC = () => {
             title="Active Production Jobs"
             value={activeJobs.length}
             subtitle={`${completedJobs.length} batches completed`}
-            icon={<Factory size={18} />}
+            image3d="/assets/3d/cnc_machine_3d.jpg"
             onClick={() => navigate('/production/jobs')}
           />
 
@@ -352,7 +350,7 @@ export const DashboardPage: React.FC = () => {
             title="Raw Material Items"
             value={totalMaterials}
             subtitle="Brass, Copper, SS & MS master stock"
-            icon={<Boxes size={18} />}
+            image3d="/assets/3d/warehouse_racks_3d.jpg"
             onClick={() => navigate('/materials')}
           />
 
@@ -360,7 +358,7 @@ export const DashboardPage: React.FC = () => {
             title="Manufactured Catalogue"
             value={products.length}
             subtitle="Precision turned brass parts"
-            icon={<Cpu size={18} />}
+            image3d="/assets/3d/brass_fitting_3d.jpg"
             onClick={() => navigate('/products')}
           />
 
@@ -368,7 +366,7 @@ export const DashboardPage: React.FC = () => {
             title="On-Time Delivery (OTD)"
             value={`${otdPercent}%`}
             subtitle="Batch dispatch reliability rate"
-            icon={<Clock size={18} />}
+            image3d="/assets/3d/quality_gauge_3d.jpg"
             statusTag={otdPercent >= 90 ? { label: 'Optimal', variant: 'success' } : { label: 'Attention', variant: 'warning' }}
             onClick={() => navigate('/reports')}
           />

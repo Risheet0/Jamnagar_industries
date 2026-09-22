@@ -5,6 +5,8 @@ interface SummaryCardProps {
   value: React.ReactNode;
   subtitle?: string;
   icon?: React.ReactNode;
+  image3d?: string;
+  image3dAlt?: string;
   trend?: {
     value: string;
     isPositive?: boolean;
@@ -23,6 +25,8 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   value,
   subtitle,
   icon,
+  image3d,
+  image3dAlt,
   trend,
   statusTag,
   onClick,
@@ -31,45 +35,63 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`card ${onClick ? 'clickable-card' : ''} ${className}`}
+      className={`card card-3d-hover ${onClick ? 'clickable-card' : ''} ${className}`}
       style={{
-        padding: '16px 18px',
+        padding: '16px 20px',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'all 0.15s ease-in-out',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        minHeight: '110px'
+        minHeight: '118px',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.88) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.95)',
+        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {title}
         </span>
-        {icon && (
+        {image3d ? (
+          <img
+            src={image3d}
+            alt={image3dAlt || title}
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              objectFit: 'cover',
+              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          />
+        ) : icon ? (
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--color-brand-primary-light)',
+            width: '34px',
+            height: '34px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
             color: 'var(--color-brand-primary)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.12)'
           }}>
             {icon}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div>
-        <div className="tabular-nums" style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+        <div className="tabular-nums" style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-text-primary)', lineHeight: 1.15, fontFamily: 'monospace' }}>
           {value}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', flexWrap: 'wrap', gap: '4px' }}>
           {subtitle && (
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
               {subtitle}
             </span>
           )}
@@ -88,7 +110,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           )}
 
           {statusTag && (
-            <span className={`status-badge status-badge-${statusTag.variant}`} style={{ fontSize: '11px', padding: '1px 6px' }}>
+            <span className={`status-badge status-badge-${statusTag.variant}`} style={{ fontSize: '10px', padding: '1px 8px' }}>
               {statusTag.label}
             </span>
           )}
@@ -97,3 +119,4 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     </div>
   );
 };
+

@@ -147,37 +147,77 @@ export const ProductionJobsPage: React.FC = () => {
         }
       />
 
-      {/* ── Job Status Summary Bar (click to filter) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-        {summaryStats.map(({ label, filterVal, value, color, bg, border }) => {
-          const isActive = statusFilter === filterVal;
-          return (
-            <button
-              key={filterVal}
-              id={`job-filter-${filterVal.replace(/\s+/g, '-').toLowerCase()}`}
-              onClick={() => setStatusFilter(filterVal)}
-              style={{
-                padding: '12px 10px',
-                background: isActive ? bg : '#ffffff',
-                border: `1px solid ${isActive ? color : border}`,
-                borderRadius: '10px',
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 120ms ease',
-                boxShadow: isActive
-                  ? `0 0 0 2px ${color}30, 0 2px 8px ${color}15`
-                  : '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <div style={{ fontSize: '22px', fontWeight: 700, color, lineHeight: 1, fontFamily: 'monospace' }}>
-                {value}
-              </div>
-              <div style={{ fontSize: '10px', fontWeight: 600, color: color + 'bb', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {label}
-              </div>
-            </button>
-          );
-        })}
+      {/* ── 3D Visual Banner & Glass Status Summary Bar ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 244, 250, 0.85))',
+        border: '1px solid rgba(226, 232, 240, 0.8)',
+        borderRadius: '16px',
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '20px',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+        backdropFilter: 'blur(16px)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <img
+            src="/assets/3d/cnc_machine_3d.jpg"
+            alt="CNC Shop Floor Work Orders"
+            style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '12px',
+              objectFit: 'cover',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+              border: '2px solid rgba(255,255,255,0.9)',
+            }}
+          />
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
+              Real-time Production Job Schedule
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+              Tracking {jobs.length} active factory orders, machine routing, and operator assignments.
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-pill-nav" style={{ padding: '4px' }}>
+          {summaryStats.map(({ label, filterVal, value, color }) => {
+            const isActive = statusFilter === filterVal;
+            return (
+              <button
+                key={filterVal}
+                id={`job-filter-${filterVal.replace(/\s+/g, '-').toLowerCase()}`}
+                onClick={() => setStatusFilter(filterVal)}
+                className={`glass-pill-tab ${isActive ? 'active' : ''}`}
+                style={{
+                  padding: '6px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                <span>{label}</span>
+                <span
+                  style={{
+                    padding: '2px 6px',
+                    borderRadius: '999px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    background: isActive ? color : 'rgba(0,0,0,0.06)',
+                    color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
+                  }}
+                >
+                  {value}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <DataTable
