@@ -7,6 +7,7 @@ import { Button } from '../components/common/Button';
 import { ConfirmationDialog } from '../components/common/ConfirmationDialog';
 import { Modal } from '../components/common/Modal';
 import { WorkerEditModal } from '../components/common/WorkerEditModal';
+import { BiometricKioskModal } from '../components/common/BiometricKioskModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -20,7 +21,8 @@ import {
   UserCheck,
   UserX,
   Clock,
-  CalendarDays
+  CalendarDays,
+  ScanFace
 } from 'lucide-react';
 
 export const WorkersPage: React.FC = () => {
@@ -39,6 +41,7 @@ export const WorkersPage: React.FC = () => {
   const [workerToDelete, setWorkerToDelete] = useState<Worker | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isKioskOpen, setIsKioskOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
 
   const todayStr = getTodayDateString();
@@ -278,13 +281,24 @@ export const WorkersPage: React.FC = () => {
           { label: 'Workers / Karigar' }
         ]}
         actions={
-          <Button
-            variant="primary"
-            icon={<UserPlus size={15} />}
-            onClick={() => openQuickAdd('worker')}
-          >
-            + Add Worker
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn-3d-action"
+              onClick={() => setIsKioskOpen(true)}
+              style={{ padding: '7px 14px', fontSize: '12px' }}
+            >
+              <ScanFace size={15} />
+              <span>3D Biometric Kiosk</span>
+            </button>
+            <Button
+              variant="primary"
+              icon={<UserPlus size={15} />}
+              onClick={() => openQuickAdd('worker')}
+            >
+              + Add Worker
+            </Button>
+          </div>
         }
       />
 
@@ -445,6 +459,12 @@ export const WorkersPage: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* 3D Biometric Kiosk Terminal Modal */}
+      <BiometricKioskModal
+        isOpen={isKioskOpen}
+        onClose={() => setIsKioskOpen(false)}
+      />
 
       {/* Edit Worker Modal */}
       <WorkerEditModal

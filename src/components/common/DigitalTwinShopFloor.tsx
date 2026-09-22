@@ -190,16 +190,19 @@ export const DigitalTwinShopFloor: React.FC = () => {
             transition: 'all 0.3s ease'
           }}
         >
+          {/* Hologram Scanner Line */}
+          <div className="hologram-scanner" />
+
           {/* 3D Render Background */}
           <img
-            src="/assets/3d/smart_factory_3d.jpg"
+            src="/assets/3d/factory_twin_hero_3d.jpg"
             alt="3D Digital Twin Factory Floor"
             style={{
               width: '100%',
               height: isFullscreen ? '700px' : '480px',
               objectFit: 'cover',
               display: 'block',
-              filter: 'contrast(1.02) saturate(1.05)'
+              filter: 'contrast(1.04) saturate(1.06)'
             }}
           />
 
@@ -523,6 +526,43 @@ export const DigitalTwinShopFloor: React.FC = () => {
               </div>
               <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '4px' }}>
                 Current Batch: 1/2" Male Hex Flare Fittings
+              </div>
+            </div>
+          </div>
+
+          {/* Robotic Assembly Arm 3D Card */}
+          <div
+            className="card card-3d-hover"
+            style={{
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(254, 242, 242, 0.85))'
+            }}
+          >
+            <img
+              src="/assets/3d/robot_arm_automation_3d.jpg"
+              alt="Robotic Automation Arm 3D"
+              style={{
+                width: '74px',
+                height: '74px',
+                borderRadius: '12px',
+                objectFit: 'cover',
+                boxShadow: '0 8px 16px rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.9)'
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Robotic Cell (Aethel-4)</span>
+                <span className="status-badge status-badge-success" style={{ fontSize: '10px' }}>Active 98%</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                Automated Laser Alignment & Brass Assembly
+              </div>
+              <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600, marginTop: '4px' }}>
+                Cycle Pace: 8.4s / piece • 420 pcs/hr
               </div>
             </div>
           </div>
