@@ -1011,25 +1011,23 @@ export const PayrollReportPage: React.FC = () => {
 
           {/* Amount and Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <FormField label="Amount (INR ₹)" required>
-              <input
-                type="number"
-                className="input"
-                placeholder="e.g. 1500"
-                value={adjAmount}
-                onChange={e => setAdjAmount(e.target.value)}
-                autoFocus
-              />
-            </FormField>
+            <FormField
+              label="Amount (INR ₹)"
+              required
+              type="number"
+              placeholder="e.g. 1500"
+              value={adjAmount}
+              onChange={e => setAdjAmount(e.target.value)}
+              autoFocus
+            />
 
-            <FormField label="Effective Date" required>
-              <input
-                type="date"
-                className="input"
-                value={adjDate}
-                onChange={e => setAdjDate(e.target.value)}
-              />
-            </FormField>
+            <FormField
+              label="Effective Date"
+              required
+              type="date"
+              value={adjDate}
+              onChange={e => setAdjDate(e.target.value)}
+            />
           </div>
 
           {/* Reason */}

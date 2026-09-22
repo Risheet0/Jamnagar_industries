@@ -7,6 +7,7 @@ export interface FormFieldProps extends Omit<React.InputHTMLAttributes<HTMLInput
   helpText?: string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -18,6 +19,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   suffix,
   id,
   className = '',
+  children,
   ...props
 }) => {
   const inputId = id || `input-${label.toLowerCase().replace(/\s+/g, '-')}`;
@@ -29,26 +31,31 @@ export const FormField: React.FC<FormFieldProps> = ({
         {required && <span className="form-label-required">*</span>}
       </label>
 
-      <div className="form-input-container">
-        {prefix && (
-          <span className="form-affix form-prefix">
-            {prefix}
-          </span>
-        )}
-        <input
-          id={inputId}
-          className={`form-input ${prefix ? 'form-input-with-prefix' : ''} ${suffix ? 'form-input-with-suffix' : ''} ${error ? 'form-input-error' : ''} ${className}`.trim()}
-          {...props}
-        />
-        {suffix && (
-          <span className="form-affix form-suffix">
-            {suffix}
-          </span>
-        )}
-      </div>
+      {children ? (
+        children
+      ) : (
+        <div className="form-input-container">
+          {prefix && (
+            <span className="form-affix form-prefix">
+              {prefix}
+            </span>
+          )}
+          <input
+            id={inputId}
+            className={`form-input ${prefix ? 'form-input-with-prefix' : ''} ${suffix ? 'form-input-with-suffix' : ''} ${error ? 'form-input-error' : ''} ${className}`.trim()}
+            {...props}
+          />
+          {suffix && (
+            <span className="form-affix form-suffix">
+              {suffix}
+            </span>
+          )}
+        </div>
+      )}
 
       {error && <div className="form-error-msg">{error}</div>}
       {!error && helpText && <div className="form-help-text">{helpText}</div>}
     </div>
   );
 };
+
