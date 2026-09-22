@@ -4,7 +4,7 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette - Engineered for high contrast, reliability & zero eye-strain */
+  /* Color Palette - 3D Digital Twin Clean White & High-Tech Accents */
   --color-brand-primary: #1e3a8a;       /* Deep Industrial Navy */
   --color-brand-primary-hover: #1e40af;
   --color-brand-primary-light: #eff6ff;
@@ -12,13 +12,26 @@
 
   --color-brand-accent: #0284c7;        /* Precision Cyan / Steel Blue */
   --color-brand-accent-hover: #0369a1;
+  --color-brand-orange: #f97316;        /* High-Tech Logistics Orange */
+  --color-brand-orange-hover: #ea580c;
+  --color-brand-orange-light: #fff7ed;
 
-  /* Neutral Slates (Clean, crisp industrial greys) */
-  --color-bg-base: #f1f5f9;            /* Factory console background */
-  --color-bg-surface: #ffffff;         /* Card / Table / Modal white */
+  /* Neutral Slates (Clean, crisp 3D digital twin console background) */
+  --color-bg-base: #f0f4f9;            /* Digital Twin studio base */
+  --color-bg-surface: rgba(255, 255, 255, 0.92); /* Frosted Glass Surface */
+  --color-bg-surface-solid: #ffffff;
   --color-bg-subtle: #f8fafc;          /* Header row / input bg */
   --color-bg-muted: #e2e8f0;           /* Dividers & inactive backgrounds */
   --color-bg-hover: #f1f5f9;
+
+  /* Glassmorphism & Claymorphism */
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg-subtle: rgba(248, 250, 252, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --glass-border-subtle: rgba(226, 232, 240, 0.8);
+  --glass-blur: blur(16px);
+  --glass-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-shadow-hover: 0 20px 35px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 1);
 
   /* Sidebar Dark Theme (Command Center feel) */
   --color-sidebar-bg: #0f172a;         /* Dark Slate 900 */
@@ -51,12 +64,12 @@
   --color-status-warning-bg: #fffbeb;
   --color-status-warning-text: #92400e;
   --color-status-warning-border: #fde68a;
-  --color-status-warning-solid: #d97706;
+  --color-status-warning-solid: #f97316;
 
   --color-status-danger-bg: #fef2f2;
   --color-status-danger-text: #991b1b;
   --color-status-danger-border: #fecaca;
-  --color-status-danger-solid: #dc2626;
+  --color-status-danger-solid: #ef4444;
 
   --color-status-info-bg: #f0f9ff;
   --color-status-info-text: #075985;
@@ -101,17 +114,17 @@
   --space-12: 3rem;    /* 48px */
 
   /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
-  /* Crisp Industrial Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.2), 0 8px 10px -6px rgba(15, 23, 42, 0.15);
+  /* Crisp 3D Industrial Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
 
   /* Layout Dimensions */
   --sidebar-width: 250px;
@@ -119,6 +132,7 @@
   --header-height: 58px;
 
   /* Transitions */
-  --transition-fast: 120ms ease-in-out;
-  --transition-normal: 180ms ease-in-out;
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+

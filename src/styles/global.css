@@ -355,15 +355,31 @@ html, body {
 }
 
 /* ==========================================================================
-   CARDS & CONTAINERS
+   CARDS & 3D GLASS CONTAINERS (Reference Inspired)
    ========================================================================== */
 
 .card {
   background-color: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.card-3d-hover {
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.card-3d-hover:hover {
+  transform: translateY(-3px) scale(1.005);
+  box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
 }
 
 .card-header {
@@ -372,7 +388,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--color-bg-surface);
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: var(--glass-blur);
 }
 
 .card-title {
@@ -397,6 +414,123 @@ html, body {
   justify-content: flex-end;
   gap: var(--space-3);
 }
+
+/* ── 3D Digital Twin Glass Pill Navigation (Reference UI) ── */
+.glass-pill-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 4px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 15px -2px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.glass-pill-tab {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.glass-pill-tab:hover {
+  color: var(--color-text-primary);
+  background: rgba(241, 245, 249, 0.8);
+}
+
+.glass-pill-tab.active {
+  background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+}
+
+.glass-pill-tab.active-orange {
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.35);
+}
+
+/* ── Live 3D Hotspot Pulse Animation ── */
+.hotspot-pulse {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0284c7;
+  box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+  animation: pulse-hotspot 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+.hotspot-pulse-orange {
+  background: #f97316;
+  box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  animation: pulse-hotspot-orange 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+.hotspot-pulse-green {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-hotspot-green 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes pulse-hotspot {
+  to { box-shadow: 0 0 0 16px rgba(2, 132, 199, 0); }
+}
+
+@keyframes pulse-hotspot-orange {
+  to { box-shadow: 0 0 0 16px rgba(249, 115, 22, 0); }
+}
+
+@keyframes pulse-hotspot-green {
+  to { box-shadow: 0 0 0 16px rgba(16, 185, 129, 0); }
+}
+
+/* ── Warehouse A1-A4 Rack Slot Grid Heatmap ── */
+.rack-slot {
+  width: 100%;
+  height: 22px;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.rack-slot-occupied {
+  background: #f97316;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.25);
+}
+
+.rack-slot-occupied:hover {
+  background: #ea580c;
+  transform: scale(1.08);
+}
+
+.rack-slot-empty {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+}
+
+.rack-slot-empty:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.rack-slot-full {
+  background: #ef4444;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
 
 /* ==========================================================================
    FORMS & INPUTS

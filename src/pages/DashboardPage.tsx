@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCard } from '../components/common/SummaryCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { DigitalTwinShopFloor } from '../components/common/DigitalTwinShopFloor';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -23,7 +24,9 @@ import {
   ArrowDownLeft,
   ShieldAlert,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -35,6 +38,8 @@ export const DashboardPage: React.FC = () => {
   const { jobs } = useProduction();
   const { inspections } = useQuality();
   const { companyProfile } = useCompany();
+
+  const [dashboardMode, setDashboardMode] = useState<'3d-twin' | 'overview'>('3d-twin');
 
   const todayStr = getTodayDateString();
   const totalWorkers = workers.length;
@@ -83,9 +88,27 @@ export const DashboardPage: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         title="Plant Operations Dashboard"
-        description={`${companyProfile.name} • ${companyProfile.location} • Standalone Industrial Control`}
+        description={`${companyProfile.name} • ${companyProfile.location} • 3D Digital Twin Command Center`}
         actions={
-          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* View Mode Toggle (3D Digital Twin vs Analytics Grid) */}
+            <div className="glass-pill-nav">
+              <button
+                className={`glass-pill-tab ${dashboardMode === '3d-twin' ? 'active' : ''}`}
+                onClick={() => setDashboardMode('3d-twin')}
+              >
+                <Sparkles size={13} />
+                <span>3D Digital Twin</span>
+              </button>
+              <button
+                className={`glass-pill-tab ${dashboardMode === 'overview' ? 'active' : ''}`}
+                onClick={() => setDashboardMode('overview')}
+              >
+                <Layers size={13} />
+                <span>Operations Grid</span>
+              </button>
+            </div>
+
             <Button
               variant="secondary"
               icon={<ArrowDownLeft size={14} />}
@@ -100,16 +123,19 @@ export const DashboardPage: React.FC = () => {
             >
               Issue Job Card
             </Button>
-          </>
+          </div>
         }
       />
+
+      {/* ── 3D Digital Twin Shop Floor Component ── */}
+      {dashboardMode === '3d-twin' && <DigitalTwinShopFloor />}
 
       {/* Operational Shift Status Banner */}
       <div
         className="card"
         style={{
           padding: '14px 20px',
-          backgroundColor: '#0f172a',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
           color: '#f8fafc',
           display: 'flex',
           alignItems: 'center',
@@ -120,7 +146,7 @@ export const DashboardPage: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '38px', height: '38px', borderRadius: '6px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', boxShadow: '0 4px 10px rgba(56, 189, 248, 0.2)' }}>
             <HardHat size={22} />
           </div>
           <div>
@@ -149,6 +175,7 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
+
 
       {/* ── Today's Attendance Summary Widget ── */}
       <div className="card" style={{ padding: '16px 20px' }}>
