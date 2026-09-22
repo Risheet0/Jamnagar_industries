@@ -12,6 +12,7 @@ import { FactoryCalendarProvider } from './context/FactoryCalendarContext';
 import { ToastProvider } from './context/ToastContext';
 import { CompanyProvider } from './context/CompanyContext';
 import { AppLayout } from './components/layout/AppLayout';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -185,7 +186,9 @@ export function App() {
                       <QualityProvider>
                         <PayrollProvider>
                           <ToastProvider>
-                            <AppRouter />
+                            <ErrorBoundary>
+                              <AppRouter />
+                            </ErrorBoundary>
                           </ToastProvider>
                         </PayrollProvider>
                       </QualityProvider>
