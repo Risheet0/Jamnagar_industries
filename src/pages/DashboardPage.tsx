@@ -348,6 +348,126 @@ export const DashboardPage: React.FC = () => {
         </div>
       </section>
 
+      {/* ── ZONE 2.5: INTERACTIVE VISUAL ANALYTICS ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+        {/* 1. Production Target vs Output Visualizer */}
+        <div className="card" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Factory size={16} style={{ color: 'var(--color-brand-primary)' }} />
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>Production Floor Target vs. Output</span>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>Active Batches</span>
+          </div>
+
+          {jobs.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {jobs.slice(0, 4).map(j => {
+                const pct = Math.min(100, Math.round((j.producedQuantity / Math.max(1, j.requiredQuantity)) * 100));
+                const isDelayed = j.status === 'Delayed';
+                const isCompleted = j.status === 'Completed' || pct >= 100;
+                const barColor = isCompleted ? '#059669' : isDelayed ? '#dc2626' : '#1e3a8a';
+
+                return (
+                  <div key={j.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{j.productName} (<span className="mono-code" style={{ fontSize: '10px' }}>{j.jobNumber}</span>)</span>
+                      <span className="tabular-nums" style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                        {j.producedQuantity} / {j.requiredQuantity} pcs ({pct}%)
+                      </span>
+                    </div>
+                    <div style={{ height: '8px', width: '100%', backgroundColor: 'var(--color-bg-muted)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, backgroundColor: barColor, borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '16px' }}>
+              No production jobs currently active.
+            </div>
+          )}
+        </div>
+
+        {/* 2. Quality Defect Root-Cause Breakdown */}
+        <div className="card" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={16} style={{ color: '#dc2626' }} />
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>Quality & Scrap Root Cause Distribution</span>
+            </div>
+            <button
+              onClick={() => navigate('/quality')}
+              style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--color-brand-primary)', fontWeight: 600, cursor: 'pointer' }}
+            >
+              QC Audit →
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { cause: 'Burr / Flash Edge', count: 4, share: 40, color: '#ef4444' },
+              { cause: 'Thread Pitch Damage', count: 3, share: 30, color: '#f59e0b' },
+              { cause: 'OD/ID Dimension Variance', count: 2, share: 20, color: '#3b82f6' },
+              { cause: 'Tool Chatter Marks', count: 1, share: 10, color: '#8b5cf6' }
+            ].map(item => (
+              <div key={item.cause} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px' }}>
+                <span style={{ width: '150px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {item.cause}
+                </span>
+                <div style={{ flex: 1, height: '7px', backgroundColor: 'var(--color-bg-muted)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${item.share}%`, backgroundColor: item.color, borderRadius: '4px' }} />
+                </div>
+                <span className="tabular-nums" style={{ width: '50px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  {item.share}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Raw Material Stock Health Distribution */}
+        <div className="card" style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Boxes size={16} style={{ color: '#0284c7' }} />
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>Inventory Health Distribution</span>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{totalMaterials} Items</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center', marginBottom: '14px' }}>
+            <div style={{ padding: '8px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>
+                {materials.filter(m => m.status === 'In Stock').length}
+              </div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: '#065f46', textTransform: 'uppercase' }}>In Stock</div>
+            </div>
+            <div style={{ padding: '8px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#d97706', fontFamily: 'monospace' }}>
+                {materials.filter(m => m.status === 'Low Stock').length}
+              </div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: '#92400e', textTransform: 'uppercase' }}>Low Stock</div>
+            </div>
+            <div style={{ padding: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626', fontFamily: 'monospace' }}>
+                {materials.filter(m => m.status === 'Out of Stock').length}
+              </div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: '#991b1b', textTransform: 'uppercase' }}>Critical Out</div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Buffer Safety Level</span>
+            <span style={{ fontWeight: 600, color: lowStockMaterials.length === 0 ? '#059669' : '#d97706' }}>
+              {lowStockMaterials.length === 0 ? '100% Protected' : `${lowStockMaterials.length} Items Need Purchase GRN`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+
       {/* Two Columns: Active Production Floor & Low Stock / Urgent Alerts */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Left: Active Production Jobs Summary Table */}
