@@ -624,3 +624,44 @@ html, body {
   border-color: #1e3a8a;
   box-shadow: 0 0 0 3px rgba(30,58,138,0.1);
 }
+
+/* ==========================================================================
+   PRINT MEDIA STYLES - Optimized for Factory Paperwork & Thermal / A4 Slips
+   ========================================================================== */
+@media print {
+  body, html {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  aside, header, nav, .sidebar-nav, .no-print, button:not(.allow-print) {
+    display: none !important;
+  }
+
+  #root, .app-shell, main {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .printable-document {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #333333 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+  }
+}
+

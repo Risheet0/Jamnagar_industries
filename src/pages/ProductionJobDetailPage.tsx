@@ -351,6 +351,95 @@ export const ProductionJobDetailPage: React.FC<ProductionJobDetailPageProps> = (
         </div>
       </div>
 
+      {/* Formal Printable Job Traveler Card (Rendered only on print / physical paper) */}
+      <div className="printable-document print-only" style={{ display: 'none', border: '2px solid #000', padding: '16px', fontFamily: 'sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '12px' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0, textTransform: 'uppercase' }}>PRODUCTION ROUTE & TRAVEL CARD</h2>
+            <div style={{ fontSize: '12px', color: '#444' }}>Vadilal Engineering Industries • Jamnagar Plant</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', fontFamily: 'monospace' }}>{job.jobNumber}</div>
+            <div style={{ fontSize: '11px' }}>Date: {job.date}</div>
+          </div>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '14px' }}>
+          <tbody>
+            <tr style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ padding: '6px', fontWeight: 'bold', width: '25%' }}>Product Code:</td>
+              <td style={{ padding: '6px', width: '25%', fontFamily: 'monospace' }}>{job.productCode}</td>
+              <td style={{ padding: '6px', fontWeight: 'bold', width: '25%' }}>Customer / Order:</td>
+              <td style={{ padding: '6px', width: '25%' }}>{job.customer}</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>Description:</td>
+              <td style={{ padding: '6px' }} colSpan={3}>{job.productName}</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>Batch Quantity:</td>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>{job.requiredQuantity} pcs</td>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>Target Due Date:</td>
+              <td style={{ padding: '6px' }}>{job.dueDate}</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>Assigned Karigar:</td>
+              <td style={{ padding: '6px' }}>{job.assignedWorker}</td>
+              <td style={{ padding: '6px', fontWeight: 'bold' }}>Machine / Workstation:</td>
+              <td style={{ padding: '6px' }}>{job.machine}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Shop Floor Operation & Sign-Off Log:</div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'center', border: '1px solid #000' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f0f0f0', borderBottom: '1px solid #000' }}>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>Stage</th>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>Date & Shift</th>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>Passed Qty</th>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>Scrap Qty</th>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>Operator Sign</th>
+                <th style={{ padding: '6px', border: '1px solid #000' }}>QC Inspector Sign</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '12px 6px', border: '1px solid #000', fontWeight: 'bold' }}>1. First Piece Setup</td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+              </tr>
+              <tr>
+                <td style={{ padding: '12px 6px', border: '1px solid #000', fontWeight: 'bold' }}>2. Batch Run</td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+              </tr>
+              <tr>
+                <td style={{ padding: '12px 6px', border: '1px solid #000', fontWeight: 'bold' }}>3. Final Quality Audit</td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+                <td style={{ border: '1px solid #000' }}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', paddingTop: '10px', borderTop: '1px dashed #666', fontSize: '11px' }}>
+          <div>Authorized By: Plant Supervisor</div>
+          <div>Quality Clearance: ____________________</div>
+          <div>Store Inward Receipt: ____________________</div>
+        </div>
+      </div>
+
       {/* Log Production Modal Form (Item 7b) */}
       <Modal
         isOpen={isLogModalOpen}
