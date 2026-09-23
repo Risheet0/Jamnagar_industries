@@ -21,7 +21,6 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
-  ExternalLink,
   Plus
 } from 'lucide-react';
 
@@ -188,7 +187,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
       {/* Page Header */}
       <PageHeader
         title={`${worker.name} — Monthly Attendance`}
-        description={`Operator Code: ${worker.workerId} • Skill: ${worker.skill} • ${worker.department} Department`}
+        description={`Operator Code: ${worker.workerId || worker.id} • ${worker.skill} • ${worker.department} Department`}
         breadcrumbs={[
           { label: 'Attendance', path: '/attendance' },
           { label: `${worker.name} Calendar` }
@@ -229,7 +228,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
               icon={<User size={14} />}
               onClick={() => navigate(`/workers/${worker.workerId || worker.id}`)}
             >
-              Worker Profile
+              Profile
             </Button>
           </div>
         }
@@ -239,7 +238,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
       <div
         className="card"
         style={{
-          padding: '12px 20px',
+          padding: '12px 18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -248,25 +247,42 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           backgroundColor: 'var(--color-bg-surface)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<ChevronLeft size={14} />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)', overflow: 'hidden' }}>
+            <button
               onClick={handlePrevMonth}
+              style={{
+                padding: '6px 10px',
+                background: 'transparent',
+                border: 'none',
+                borderRight: '1px solid var(--color-border-subtle)',
+                cursor: 'pointer',
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center'
+              }}
               title="Previous Month"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<ChevronRight size={14} />}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
               onClick={handleNextMonth}
+              style={{
+                padding: '6px 10px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center'
+              }}
               title="Next Month"
-            />
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
-          <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Calendar size={18} style={{ color: 'var(--color-brand-primary)' }} />
             <span>
               {MONTH_NAMES[currentMonth - 1]} {currentYear}
@@ -274,19 +290,32 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           </div>
 
           {(currentYear !== todayDateObj.getFullYear() || currentMonth !== todayDateObj.getMonth() + 1) && (
-            <Button
-              variant="secondary"
-              size="sm"
+            <button
               onClick={handleJumpToCurrentMonth}
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--color-bg-subtle)',
+                border: '1px solid var(--color-border-subtle)',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer'
+              }}
             >
               Current Month
-            </Button>
+            </button>
           )}
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--color-brand-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <ExternalLink size={13} />
-          <span>Click any date to view the full plant daily attendance page</span>
+        <div style={{ display: 'flex', gap: '12px', fontSize: '11.5px', color: 'var(--color-text-secondary)' }}>
+          <span>Rate: <strong style={{ color: 'var(--color-brand-primary)' }}>{summary.attendancePercent}%</strong></span>
+          <span>•</span>
+          <span>Present: <strong style={{ color: 'var(--color-status-success-solid)' }}>{summary.present}</strong></span>
+          <span>•</span>
+          <span>Absent: <strong style={{ color: 'var(--color-status-danger-solid)' }}>{summary.absent}</strong></span>
+          <span>•</span>
+          <span>Leave: <strong style={{ color: 'var(--color-brand-primary)' }}>{summary.onLeave}</strong></span>
         </div>
       </div>
 
@@ -295,7 +324,7 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
         <SummaryCard
           title="Attendance Rate"
           value={`${summary.attendancePercent}%`}
-          subtitle="Of marked working days"
+          subtitle="Monthly compliance"
           icon={<CalendarCheck size={18} />}
           statusTag={{
             label: summary.attendancePercent >= 90 ? 'Excellent' : summary.attendancePercent >= 75 ? 'Satisfactory' : 'Needs Review',
@@ -307,46 +336,46 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
           value={`${summary.present} Days`}
           subtitle="Full working shifts"
           icon={<CheckCircle2 size={18} />}
-          statusTag={{ label: `${summary.present} Present`, variant: 'success' }}
+          statusTag={{ label: `${summary.present} Days`, variant: 'success' }}
         />
         <SummaryCard
           title="Half Days"
           value={`${summary.halfDay} Days`}
-          subtitle="4-hour partial shifts"
+          subtitle="Partial shifts"
           icon={<Clock size={18} />}
-          statusTag={{ label: `${summary.halfDay} Half`, variant: 'warning' }}
+          statusTag={{ label: `${summary.halfDay} Days`, variant: 'warning' }}
         />
         <SummaryCard
           title="Absent Days"
           value={`${summary.absent} Days`}
-          subtitle="Unexcused / sick absences"
+          subtitle="Unexcused absences"
           icon={<XCircle size={18} />}
-          statusTag={{ label: `${summary.absent} Absent`, variant: summary.absent > 0 ? 'danger' : 'success' }}
+          statusTag={{ label: `${summary.absent} Days`, variant: summary.absent > 0 ? 'danger' : 'success' }}
         />
         <SummaryCard
           title="On Leave"
           value={`${summary.onLeave} Days`}
-          subtitle="Approved leave requests"
+          subtitle="Approved leaves"
           icon={<AlertTriangle size={18} />}
-          statusTag={{ label: `${summary.onLeave} Leave`, variant: 'info' }}
+          statusTag={{ label: `${summary.onLeave} Days`, variant: 'info' }}
         />
         <SummaryCard
           title="Holidays / Off"
           value={`${summary.holiday} Days`}
-          subtitle="Sunday / plant closure"
+          subtitle="Plant offs"
           icon={<Sparkles size={18} />}
           statusTag={{ label: `${summary.holiday} Off`, variant: 'neutral' }}
         />
       </div>
 
       {/* Main 7-Column Calendar Grid */}
-      <div className="card" style={{ padding: '20px' }}>
+      <div className="card" style={{ padding: '16px' }}>
         {/* Day Name Headers */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '10px',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: '8px',
             marginBottom: '10px',
             textAlign: 'center'
           }}
@@ -357,17 +386,17 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
               <div
                 key={name}
                 style={{
-                  padding: '8px 4px',
-                  fontSize: '12px',
+                  padding: '6px 4px',
+                  fontSize: '11px',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-secondary)',
+                  color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-muted)',
                   backgroundColor: isWeeklyOff ? 'rgba(239, 68, 68, 0.08)' : 'var(--color-bg-subtle)',
                   borderRadius: 'var(--radius-sm)'
                 }}
               >
-                {name} {isWeeklyOff ? '• Off' : ''}
+                {name} {isWeeklyOff ? '(OFF)' : ''}
               </div>
             );
           })}
@@ -377,8 +406,8 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '10px'
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            gap: '8px'
           }}
         >
           {calendarDays.map((item) => {
@@ -387,11 +416,11 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                 <div
                   key={item.key}
                   style={{
-                    minHeight: '90px',
+                    minHeight: '92px',
                     borderRadius: 'var(--radius-md)',
-                    backgroundColor: item.isWeeklyOff ? 'rgba(239, 68, 68, 0.03)' : 'var(--color-bg-subtle)',
-                    border: '1px dashed var(--color-border-subtle)',
-                    opacity: 0.35
+                    backgroundColor: 'var(--color-bg-subtle)',
+                    border: '1px solid var(--color-border-subtle)',
+                    opacity: 0.3
                   }}
                 />
               );
@@ -433,18 +462,16 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
               badgeIcon = <Sparkles size={13} style={{ color: 'var(--color-text-muted)' }} />;
             } else if (item.isWeeklyOff) {
               bgColor = 'rgba(239, 68, 68, 0.04)';
+              borderColor = 'rgba(239, 68, 68, 0.2)';
             }
-
-            const cellTooltip = `${item.dateStr}: ${status || (item.isWeeklyOff ? 'Weekly Off' : 'Not marked')}${rec?.checkInTime ? ` (${rec.checkInTime})` : ''} — Click to view full daily detail`;
 
             return (
               <div
                 key={`day-${item.dayNumber}`}
                 onClick={() => item.dateStr && navigate(`/attendance/day/${item.dateStr}`)}
-                title={cellTooltip}
                 style={{
                   minHeight: '92px',
-                  padding: '8px 10px',
+                  padding: '8px 9px',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: bgColor,
                   border: item.isToday ? '2px solid var(--color-brand-primary)' : `1px solid ${borderColor}`,
@@ -456,16 +483,6 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                   transition: 'all 0.15s ease',
                   position: 'relative'
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.08)';
-                  e.currentTarget.style.borderColor = 'var(--color-brand-primary)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = item.isToday ? '0 0 0 1px var(--color-brand-primary)' : 'none';
-                  e.currentTarget.style.borderColor = item.isToday ? 'var(--color-brand-primary)' : borderColor;
-                }}
               >
                 {/* Top: Day Number & Today Tag */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -473,7 +490,14 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                     style={{
                       fontSize: '13px',
                       fontWeight: 700,
-                      color: item.isToday ? 'var(--color-brand-primary)' : item.isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)'
+                      width: '22px',
+                      height: '22px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      backgroundColor: item.isToday ? 'var(--color-brand-primary)' : 'transparent',
+                      color: item.isToday ? '#ffffff' : item.isWeeklyOff ? 'var(--color-status-danger-solid)' : 'var(--color-text-primary)'
                     }}
                   >
                     {item.dayNumber}
@@ -528,8 +552,8 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
                       )}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', opacity: 0.6 }}>
-                      {item.isWeeklyOff ? (config.weeklyOffTitle || 'Plant Off') : 'Not marked'}
+                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                      {item.isWeeklyOff ? 'Plant Off' : 'Not marked'}
                     </div>
                   )}
                 </div>
@@ -541,39 +565,39 @@ export const WorkerAttendanceCalendarPage: React.FC<WorkerAttendanceCalendarPage
         {/* Legend Bar */}
         <div
           style={{
-            marginTop: '20px',
-            paddingTop: '14px',
+            marginTop: '16px',
+            paddingTop: '12px',
             borderTop: '1px solid var(--color-border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            gap: '18px',
-            fontSize: '12px'
+            gap: '16px',
+            fontSize: '11.5px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--color-status-success-bg)', border: '1px solid var(--color-status-success-border)' }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>Present (Full Day)</span>
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: 'var(--color-status-success-bg)', border: '1px solid var(--color-status-success-border)' }} />
+            <span style={{ color: 'var(--color-text-secondary)' }}>Present</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--color-status-warning-bg)', border: '1px solid var(--color-status-warning-border)' }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>Half Day (0.5 Day)</span>
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: 'var(--color-status-warning-bg)', border: '1px solid var(--color-status-warning-border)' }} />
+            <span style={{ color: 'var(--color-text-secondary)' }}>Half Day</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--color-status-danger-bg)', border: '1px solid var(--color-status-danger-border)' }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>Absent (Unexcused)</span>
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: 'var(--color-status-danger-bg)', border: '1px solid var(--color-status-danger-border)' }} />
+            <span style={{ color: 'var(--color-text-secondary)' }}>Absent</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'var(--color-status-info-bg)', border: '1px solid var(--color-status-info-border)' }} />
-            <span style={{ color: 'var(--color-text-secondary)' }}>On Leave (Approved)</span>
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: 'var(--color-status-info-bg)', border: '1px solid var(--color-status-info-border)' }} />
+            <span style={{ color: 'var(--color-text-secondary)' }}>On Leave</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: 'rgba(241, 245, 249, 0.8)', border: '1px solid var(--color-border-subtle)' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', backgroundColor: 'rgba(241, 245, 249, 0.8)', border: '1px solid var(--color-border-subtle)' }} />
             <span style={{ color: 'var(--color-text-secondary)' }}>Holiday / Plant Off</span>
           </div>
         </div>

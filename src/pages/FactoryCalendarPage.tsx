@@ -19,7 +19,9 @@ import {
   Flame,
   ExternalLink,
   Layers,
-  AlertCircle
+  Search,
+  Edit3,
+  CalendarDays
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -50,6 +52,8 @@ export const FactoryCalendarPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState<boolean>(false);
   const [modalInitialDate, setModalInitialDate] = useState<string>(todayStr);
+  const [matrixSearch, setMatrixSearch] = useState<string>('');
+  const [holidaySearch, setHolidaySearch] = useState<string>('');
 
   const activeWorkers = useMemo(() => workers.filter(w => w.status === 'Active'), [workers]);
 
@@ -95,7 +99,6 @@ export const FactoryCalendarPage: React.FC = () => {
 
   // Calendar Days Calculation
   const calendarDays = useMemo(() => {
-    // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     const firstDayIndex = new Date(currentYear, currentMonth - 1, 1).getDay();
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
@@ -175,14 +178,39 @@ export const FactoryCalendarPage: React.FC = () => {
     [currentYear, getAllHolidaysForYear]
   );
 
+  const filteredHolidays = useMemo(() => {
+    if (!holidaySearch.trim()) return holidaysForCurrentYear;
+    const q = holidaySearch.toLowerCase();
+    return holidaysForCurrentYear.filter(h =>
+      h.title.toLowerCase().includes(q) ||
+      h.date.includes(q) ||
+      h.category.toLowerCase().includes(q) ||
+      (h.notes && h.notes.toLowerCase().includes(q))
+    );
+  }, [holidaysForCurrentYear, holidaySearch]);
+
+  const filteredWorkersForMatrix = useMemo(() => {
+    if (!matrixSearch.trim()) return activeWorkers;
+    const q = matrixSearch.toLowerCase();
+    return activeWorkers.filter(w =>
+      w.name.toLowerCase().includes(q) ||
+      (w.workerId && w.workerId.toLowerCase().includes(q)) ||
+      (w.skill && w.skill.toLowerCase().includes(q))
+    );
+  }, [activeWorkers, matrixSearch]);
+
+  const uptimePercent = monthSummary.totalDays > 0
+    ? Math.round((monthSummary.openDays / monthSummary.totalDays) * 100)
+    : 0;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Page Header */}
       <PageHeader
-        title="Universal Factory Operational Calendar"
-        description="Plant-wide master operational schedule, Friday weekly factory off, custom holiday dates, shift timings & workforce presence."
+        title="Factory Calendar"
+        description="Plant operational schedules, weekly offs, declared holidays, and shift oversight."
         actions={
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
             <Button
               variant="secondary"
               icon={<Settings size={15} />}
@@ -191,7 +219,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 setIsScheduleModalOpen(true);
               }}
             >
-              Weekly Off ({config.weeklyOffTitle || 'Friday'})
+              Weekly Off Config
             </Button>
             <Button
               variant="primary"
@@ -201,19 +229,24 @@ export const FactoryCalendarPage: React.FC = () => {
                 setIsScheduleModalOpen(true);
               }}
             >
-              Declare Holiday / Schedule
+              Declare Holiday / Override
             </Button>
           </div>
         }
       />
 
       {/* Top Plant KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
         {/* Card 1: Today Plant Status */}
         <div
           className="card"
           style={{
-            padding: '16px',
+            padding: '16px 18px',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
             borderLeft: `4px solid ${
               todayFactoryInfo.status === 'Open'
                 ? 'var(--color-status-success-solid)'
@@ -222,8 +255,8 @@ export const FactoryCalendarPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-              Today's Plant Status
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Today's Status
             </span>
             <span
               style={{
@@ -233,141 +266,249 @@ export const FactoryCalendarPage: React.FC = () => {
                 borderRadius: 'var(--radius-sm)',
                 backgroundColor:
                   todayFactoryInfo.status === 'Open'
-                    ? 'rgba(16, 185, 129, 0.15)'
-                    : 'rgba(239, 68, 68, 0.15)',
+                    ? 'rgba(16, 185, 129, 0.12)'
+                    : 'rgba(239, 68, 68, 0.12)',
                 color:
                   todayFactoryInfo.status === 'Open'
                     ? 'var(--color-status-success-solid)'
-                    : 'var(--color-status-danger-solid)'
+                    : 'var(--color-status-danger-solid)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              {todayFactoryInfo.status === 'Open' ? '🟢 FACTORY OPEN' : '🔴 FACTORY CLOSED'}
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: todayFactoryInfo.status === 'Open' ? '#10b981' : '#ef4444' }} />
+              {todayFactoryInfo.status === 'Open' ? 'Factory Open' : 'Factory Closed'}
             </span>
           </div>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '8px' }}>
-            {todayFactoryInfo.title}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-            {todayFactoryInfo.status === 'Open'
-              ? `${todayDaySummary.present} of ${todayDaySummary.totalWorkers} Karigars Present`
-              : 'Plant Operations & Machining Suspended'}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              {todayFactoryInfo.title}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '3px' }}>
+              {todayFactoryInfo.status === 'Open'
+                ? `${todayDaySummary.present} of ${todayDaySummary.totalWorkers} workers present`
+                : 'Floor operations suspended'}
+            </div>
           </div>
         </div>
 
-        {/* Card 2: Factory Open Operating Days */}
+        {/* Card 2: Operating Days */}
         <SummaryCard
-          title="Operating Days in Month"
-          value={`${monthSummary.openDays} Days`}
-          subtitle={`${monthSummary.totalDays > 0 ? Math.round((monthSummary.openDays / monthSummary.totalDays) * 100) : 0}% Monthly Plant Uptime`}
+          title="Operating Days"
+          value={`${monthSummary.openDays} / ${monthSummary.totalDays} Days`}
+          subtitle={`${uptimePercent}% Monthly Plant Uptime`}
           icon={<Building2 size={20} />}
           statusTag={{ label: 'Active Floor', variant: 'success' }}
         />
 
-        {/* Card 3: Factory Closed / Holidays */}
+        {/* Card 3: Non-Working Days */}
         <SummaryCard
-          title="Factory Closed Days"
+          title="Non-Working Days"
           value={`${monthSummary.closedDays} Days`}
-          subtitle={`${monthSummary.weeklyOffs} Plant Offs + ${monthSummary.holidays} Holidays`}
+          subtitle={`${monthSummary.weeklyOffs} Weekly Offs • ${monthSummary.holidays} Holidays`}
           icon={<Calendar size={20} />}
-          statusTag={{ label: 'Rest & Maintenance', variant: 'danger' }}
+          statusTag={{ label: 'Scheduled Offs', variant: 'danger' }}
         />
 
-        {/* Card 4: Standard Shift Timings */}
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-            Plant Shift & Weekly Rule
+        {/* Card 4: Operating Shift & Weekly Off */}
+        <div
+          className="card"
+          style={{
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Shift & Schedule
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                color: 'var(--color-brand-primary)'
+              }}
+            >
+              Standard Rule
+            </span>
           </div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-brand-primary)', marginTop: '6px' }}>
-            {config.weeklyOffTitle}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={13} /> {config.standardShiftTimings}
+          <div style={{ marginTop: '10px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              {config.weeklyOffTitle || 'Friday Weekly Off'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Clock size={13} style={{ color: 'var(--color-brand-primary)' }} />
+              {config.standardShiftTimings || 'Day Shift: 8:00 AM – 8:00 PM'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Container: Calendar & Day Inspector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '16px', alignItems: 'start' }}>
-        {/* Left Column: Calendar Card & Controls */}
+      {/* Main Content Area */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '18px', alignItems: 'start' }}>
+        {/* Left Column: Calendar / Matrix / Holidays */}
         <div className="card" style={{ overflow: 'hidden', minWidth: 0 }}>
-          {/* Header Bar: Month Switcher & View Tabs */}
+          {/* Header Bar: Month Navigation & View Segmented Tabs */}
           <div
-            className="card-header"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '12px',
-              padding: '12px 16px'
+              padding: '14px 18px',
+              borderBottom: '1px solid var(--color-border-subtle)',
+              backgroundColor: 'var(--color-bg-surface)'
             }}
           >
-            {/* Month & Year Title with Navigation Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <Button variant="secondary" size="sm" onClick={handlePrevMonth}>
+            {/* Month & Year Navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)', overflow: 'hidden' }}>
+                <button
+                  onClick={handlePrevMonth}
+                  style={{
+                    padding: '6px 10px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRight: '1px solid var(--color-border-subtle)',
+                    cursor: 'pointer',
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Previous Month"
+                >
                   <ChevronLeft size={16} />
-                </Button>
-                <Button variant="secondary" size="sm" onClick={handleNextMonth}>
+                </button>
+                <button
+                  onClick={handleNextMonth}
+                  style={{
+                    padding: '6px 10px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Next Month"
+                >
                   <ChevronRight size={16} />
-                </Button>
+                </button>
               </div>
 
-              <h2 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: 'var(--color-text-primary)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, color: 'var(--color-text-primary)', minWidth: '160px' }}>
                 {MONTH_NAMES[currentMonth - 1]} {currentYear}
               </h2>
 
-              <Button
-                variant="secondary"
-                size="sm"
+              <button
                 onClick={handleJumpToCurrentMonth}
-                style={{ fontSize: '11px', marginLeft: '4px', padding: '4px 8px' }}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--color-bg-subtle)',
+                  border: '1px solid var(--color-border-subtle)',
+                  color: 'var(--color-text-secondary)',
+                  cursor: 'pointer'
+                }}
               >
                 Today
-              </Button>
+              </button>
             </div>
 
-            {/* View Mode Toggle */}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <Button
-                variant={viewMode === 'calendar' ? 'primary' : 'secondary'}
-                size="sm"
+            {/* View Mode Segmented Controls */}
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: '3px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--color-bg-subtle)',
+                border: '1px solid var(--color-border-subtle)',
+                gap: '2px'
+              }}
+            >
+              <button
                 onClick={() => setViewMode('calendar')}
-                icon={<Calendar size={14} />}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  backgroundColor: viewMode === 'calendar' ? 'var(--color-brand-primary)' : 'transparent',
+                  color: viewMode === 'calendar' ? '#ffffff' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
               >
-                Calendar
-              </Button>
-              <Button
-                variant={viewMode === 'matrix' ? 'primary' : 'secondary'}
-                size="sm"
+                <Calendar size={14} />
+                Month View
+              </button>
+              <button
                 onClick={() => setViewMode('matrix')}
-                icon={<Layers size={14} />}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  backgroundColor: viewMode === 'matrix' ? 'var(--color-brand-primary)' : 'transparent',
+                  color: viewMode === 'matrix' ? '#ffffff' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
               >
-                Worker Matrix
-              </Button>
-              <Button
-                variant={viewMode === 'holidayList' ? 'primary' : 'secondary'}
-                size="sm"
+                <Layers size={14} />
+                Workforce Matrix
+              </button>
+              <button
                 onClick={() => setViewMode('holidayList')}
-                icon={<Flame size={14} />}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  backgroundColor: viewMode === 'holidayList' ? 'var(--color-brand-primary)' : 'transparent',
+                  color: viewMode === 'holidayList' ? '#ffffff' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
               >
+                <Flame size={14} />
                 Holidays ({holidaysForCurrentYear.length})
-              </Button>
+              </button>
             </div>
           </div>
 
-          {/* VIEW 1: Universal Factory Calendar Grid */}
+          {/* VIEW 1: Clean Industrial Calendar Grid */}
           {viewMode === 'calendar' && (
-            <div style={{ padding: '14px', minWidth: 0, overflowX: 'auto' }}>
+            <div style={{ padding: '16px', minWidth: 0, overflowX: 'auto' }}>
               {/* Day of Week Headers */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                  gap: '6px',
-                  marginBottom: '8px',
-                  textAlign: 'center',
-                  minWidth: 0
+                  gap: '8px',
+                  marginBottom: '10px',
+                  textAlign: 'center'
                 }}
               >
                 {DAY_NAMES.map((name, idx) => {
@@ -378,21 +519,19 @@ export const FactoryCalendarPage: React.FC = () => {
                       style={{
                         fontSize: '11px',
                         fontWeight: 700,
-                        padding: '6px 2px',
+                        padding: '6px 4px',
                         borderRadius: 'var(--radius-sm)',
                         backgroundColor: isWeeklyOff
-                          ? 'rgba(239, 68, 68, 0.12)'
+                          ? 'rgba(239, 68, 68, 0.08)'
                           : 'var(--color-bg-subtle)',
                         color: isWeeklyOff
                           ? 'var(--color-status-danger-solid)'
-                          : 'var(--color-text-secondary)',
+                          : 'var(--color-text-muted)',
                         textTransform: 'uppercase',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        letterSpacing: '0.05em'
                       }}
                     >
-                      {name} {isWeeklyOff ? '• OFF' : ''}
+                      {name} {isWeeklyOff ? '(OFF)' : ''}
                     </div>
                   );
                 })}
@@ -403,8 +542,7 @@ export const FactoryCalendarPage: React.FC = () => {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                  gap: '6px',
-                  minWidth: 0
+                  gap: '8px'
                 }}
               >
                 {calendarDays.map((cell) => {
@@ -413,11 +551,11 @@ export const FactoryCalendarPage: React.FC = () => {
                       <div
                         key={cell.key}
                         style={{
-                          minHeight: '96px',
-                          backgroundColor: cell.isWeeklyOff ? 'rgba(239, 68, 68, 0.03)' : 'var(--color-bg-subtle)',
-                          opacity: 0.35,
+                          minHeight: '100px',
+                          backgroundColor: 'var(--color-bg-subtle)',
+                          opacity: 0.3,
                           borderRadius: 'var(--radius-md)',
-                          border: '1px dashed var(--color-border-subtle)'
+                          border: '1px solid var(--color-border-subtle)'
                         }}
                       />
                     );
@@ -427,6 +565,10 @@ export const FactoryCalendarPage: React.FC = () => {
                   const isOpen = info.status === 'Open';
                   const isSelected = selectedDate === cell.dateStr;
                   const daySummary = getDaySummary(cell.dateStr, activeWorkers);
+                  const isHoliday = !isOpen && info.category !== 'Weekly Off';
+                  const isWeeklyOff = !isOpen && info.category === 'Weekly Off';
+                  const isSpecialWorkDay = isOpen && info.isCustomOverride;
+                  const hasAttendanceLogged = daySummary.present > 0 || daySummary.absent > 0 || daySummary.halfDay > 0;
 
                   return (
                     <div
@@ -434,111 +576,182 @@ export const FactoryCalendarPage: React.FC = () => {
                       onClick={() => setSelectedDate(cell.dateStr!)}
                       onDoubleClick={() => openScheduleForDate(cell.dateStr!)}
                       style={{
-                        minHeight: '96px',
-                        padding: '6px 8px',
+                        minHeight: '100px',
+                        padding: '8px 9px',
                         borderRadius: 'var(--radius-md)',
                         border: isSelected
                           ? '2px solid var(--color-brand-primary)'
                           : cell.isToday
-                          ? '1.5px solid var(--color-status-success-solid)'
-                          : isOpen
-                          ? '1px solid var(--color-border-subtle)'
-                          : '1px solid rgba(239, 68, 68, 0.25)',
+                          ? '1.5px solid var(--color-brand-accent)'
+                          : isHoliday
+                          ? '1px solid rgba(239, 68, 68, 0.3)'
+                          : isWeeklyOff
+                          ? '1px solid rgba(245, 158, 11, 0.25)'
+                          : '1px solid var(--color-border-subtle)',
                         backgroundColor: isSelected
-                          ? 'rgba(59, 130, 246, 0.08)'
-                          : isOpen
-                          ? 'var(--color-bg-surface)'
-                          : 'rgba(239, 68, 68, 0.04)',
+                          ? 'rgba(30, 58, 138, 0.06)'
+                          : cell.isToday
+                          ? 'rgba(2, 132, 199, 0.04)'
+                          : isHoliday
+                          ? 'rgba(239, 68, 68, 0.04)'
+                          : isWeeklyOff
+                          ? 'rgba(245, 158, 11, 0.03)'
+                          : 'var(--color-bg-surface-solid)',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
                         transition: 'all 0.15s ease',
                         position: 'relative',
-                        minWidth: 0,
-                        overflow: 'hidden'
+                        boxShadow: isSelected ? '0 0 0 1px var(--color-brand-primary)' : 'none'
                       }}
                     >
-                      {/* Top Row: Day number + Badges */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                      {/* Top Row: Date Number & Badges */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span
                           style={{
                             fontSize: '13px',
-                            fontWeight: cell.isToday ? 800 : 700,
-                            color: cell.isToday
+                            fontWeight: cell.isToday || isSelected ? 800 : 600,
+                            width: '24px',
+                            height: '24px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            backgroundColor: cell.isToday
                               ? 'var(--color-brand-primary)'
-                              : isOpen
-                              ? 'var(--color-text-primary)'
-                              : 'var(--color-status-danger-solid)'
+                              : 'transparent',
+                            color: cell.isToday
+                              ? '#ffffff'
+                              : isHoliday
+                              ? 'var(--color-status-danger-solid)'
+                              : isWeeklyOff
+                              ? 'var(--color-status-warning-solid)'
+                              : 'var(--color-text-primary)'
                           }}
                         >
                           {cell.dayNumber}
                         </span>
 
-                        {/* Open vs Closed Badge */}
-                        <span
-                          style={{
-                            fontSize: '9px',
-                            fontWeight: 700,
-                            padding: '1px 4px',
-                            borderRadius: '3px',
-                            backgroundColor: isOpen
-                              ? 'rgba(16, 185, 129, 0.15)'
-                              : 'rgba(239, 68, 68, 0.15)',
-                            color: isOpen
-                              ? 'var(--color-status-success-solid)'
-                              : 'var(--color-status-danger-solid)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {isOpen ? 'OPEN' : 'CLOSED'}
-                        </span>
-                      </div>
-
-                      {/* Middle: Title or Event */}
-                      <div style={{ margin: '2px 0', minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: '10.5px',
-                            fontWeight: 600,
-                            color: isOpen ? 'var(--color-text-secondary)' : 'var(--color-status-danger-solid)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={info.title}
-                        >
-                          {info.title}
-                        </div>
-                      </div>
-
-                      {/* Bottom: Worker Presence Stats (if Open) or Closed Notice */}
-                      <div style={{ minWidth: 0 }}>
-                        {isOpen ? (
-                          <div
+                        {/* Top-right subtle badge */}
+                        {isHoliday && (
+                          <span
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              fontSize: '10px',
-                              fontWeight: 700
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                              color: 'var(--color-status-danger-solid)',
+                              whiteSpace: 'nowrap'
                             }}
                           >
-                            <span style={{ color: 'var(--color-status-success-solid)' }}>
-                              {daySummary.present}P
-                            </span>
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>/</span>
-                            <span style={{ color: 'var(--color-status-warning-solid)' }}>
-                              {daySummary.halfDay}H
-                            </span>
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>/</span>
-                            <span style={{ color: 'var(--color-status-danger-solid)' }}>
-                              {daySummary.absent}A
-                            </span>
+                            Holiday
+                          </span>
+                        )}
+
+                        {isWeeklyOff && (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 600,
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                              color: 'var(--color-status-warning-solid)',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Off
+                          </span>
+                        )}
+
+                        {isSpecialWorkDay && (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                              color: 'var(--color-status-success-solid)',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Special
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Middle: Event Title (Only shown for holidays / special events to avoid clutter) */}
+                      <div style={{ margin: '4px 0', minHeight: '22px' }}>
+                        {isHoliday ? (
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: 'var(--color-status-danger-solid)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={info.title}
+                          >
+                            {info.title}
                           </div>
+                        ) : isSpecialWorkDay ? (
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              color: 'var(--color-status-success-solid)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={info.title}
+                          >
+                            {info.title}
+                          </div>
+                        ) : isWeeklyOff ? (
+                          <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                            Weekly Off
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Bottom Row: Attendance Presence Pill */}
+                      <div>
+                        {isOpen ? (
+                          hasAttendanceLogged ? (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                color: 'var(--color-status-success-solid)'
+                              }}
+                            >
+                              <span>● {daySummary.present} Present</span>
+                              {daySummary.absent > 0 && (
+                                <span style={{ color: 'var(--color-status-danger-solid)' }}>
+                                  ({daySummary.absent}A)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                              Open Shift
+                            </div>
+                          )
                         ) : (
-                          <div style={{ fontSize: '9.5px', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {info.category === 'Weekly Off' ? 'Weekly Off' : info.category}
+                          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                            {info.category === 'Weekly Off' ? 'Plant Closed' : info.category}
                           </div>
                         )}
                       </div>
@@ -549,168 +762,202 @@ export const FactoryCalendarPage: React.FC = () => {
             </div>
           )}
 
-          {/* VIEW 2: Worker Presence & Shift Matrix */}
+          {/* VIEW 2: Clean Worker Presence Matrix */}
           {viewMode === 'matrix' && (
-            <div style={{ overflowX: 'auto', padding: '16px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
-                    <th style={{ padding: '8px 10px', textAlign: 'left', minWidth: '150px', position: 'sticky', left: 0, backgroundColor: 'var(--color-bg-subtle)', zIndex: 2 }}>
-                      Worker / Karigar
-                    </th>
-                    {Array.from({ length: new Date(currentYear, currentMonth, 0).getDate() }, (_, i) => i + 1).map(day => {
-                      const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const fInfo = getFactoryDay(dateStr);
-                      const isWeeklyOff = new Date(currentYear, currentMonth - 1, day).getDay() === config.defaultWeeklyOffDay;
+            <div style={{ padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px' }}>
+                <div style={{ position: 'relative', width: '260px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search worker by name or ID..."
+                    value={matrixSearch}
+                    onChange={e => setMatrixSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px 6px 32px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border-subtle)',
+                      backgroundColor: 'var(--color-bg-subtle)',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '12px'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--color-text-secondary)', alignItems: 'center' }}>
+                  <span><strong style={{ color: 'var(--color-status-success-solid)' }}>P</strong> Present</span>
+                  <span><strong style={{ color: 'var(--color-status-warning-solid)' }}>H</strong> Half Day</span>
+                  <span><strong style={{ color: 'var(--color-status-danger-solid)' }}>A</strong> Absent</span>
+                  <span><strong style={{ color: 'var(--color-brand-primary)' }}>L</strong> Leave</span>
+                  <span><strong style={{ color: 'var(--color-text-muted)' }}>Off</strong> Closed</span>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--color-bg-subtle)', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', minWidth: '160px', position: 'sticky', left: 0, backgroundColor: 'var(--color-bg-subtle)', zIndex: 2 }}>
+                        Worker Name
+                      </th>
+                      {Array.from({ length: new Date(currentYear, currentMonth, 0).getDate() }, (_, i) => i + 1).map(day => {
+                        const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const fInfo = getFactoryDay(dateStr);
+                        const isWeeklyOff = new Date(currentYear, currentMonth - 1, day).getDay() === config.defaultWeeklyOffDay;
+
+                        return (
+                          <th
+                            key={day}
+                            style={{
+                              padding: '6px 3px',
+                              textAlign: 'center',
+                              minWidth: '26px',
+                              backgroundColor: !fInfo || fInfo.status === 'Closed' ? 'rgba(239, 68, 68, 0.05)' : 'inherit',
+                              color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'inherit'
+                            }}
+                          >
+                            <div style={{ fontWeight: 700 }}>{day}</div>
+                            <div style={{ fontSize: '9px', opacity: 0.6 }}>
+                              {DAY_NAMES[new Date(currentYear, currentMonth - 1, day).getDay()][0]}
+                            </div>
+                          </th>
+                        );
+                      })}
+                      <th style={{ padding: '10px 8px', textAlign: 'center', minWidth: '36px', color: 'var(--color-status-success-solid)' }}>P</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', minWidth: '36px', color: 'var(--color-status-danger-solid)' }}>A</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', minWidth: '36px', color: 'var(--color-brand-primary)' }}>L</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWorkersForMatrix.map(w => {
+                      let pCount = 0;
+                      let aCount = 0;
+                      let lCount = 0;
+
+                      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
                       return (
-                        <th
-                          key={day}
-                          style={{
-                            padding: '6px 4px',
-                            textAlign: 'center',
-                            minWidth: '28px',
-                            backgroundColor: !fInfo || fInfo.status === 'Closed' ? 'rgba(239, 68, 68, 0.08)' : 'inherit',
-                            color: isWeeklyOff ? 'var(--color-status-danger-solid)' : 'inherit'
-                          }}
-                        >
-                          <div>{day}</div>
-                          <div style={{ fontSize: '9px', opacity: 0.7 }}>
-                            {DAY_NAMES[new Date(currentYear, currentMonth - 1, day).getDay()][0]}
-                          </div>
-                        </th>
-                      );
-                    })}
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-status-success-solid)' }}>P</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-status-danger-solid)' }}>A</th>
-                    <th style={{ padding: '8px 10px', textAlign: 'center', minWidth: '40px', color: 'var(--color-brand-primary)' }}>L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeWorkers.map(w => {
-                    let pCount = 0;
-                    let aCount = 0;
-                    let lCount = 0;
+                        <tr key={w.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                          <td
+                            style={{
+                              padding: '8px 12px',
+                              fontWeight: 600,
+                              position: 'sticky',
+                              left: 0,
+                              backgroundColor: 'var(--color-bg-surface)',
+                              zIndex: 1
+                            }}
+                          >
+                            <div style={{ color: 'var(--color-text-primary)' }}>{w.name}</div>
+                            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                              {w.workerId || w.id} • {w.skill}
+                            </div>
+                          </td>
 
-                    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+                          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const fInfo = getFactoryDay(dateStr);
+                            const attRecord = getAttendanceForDate(w.workerId || w.id, dateStr);
 
-                    return (
-                      <tr key={w.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                        {/* Worker Identity Column */}
-                        <td
-                          style={{
-                            padding: '8px 10px',
-                            fontWeight: 600,
-                            position: 'sticky',
-                            left: 0,
-                            backgroundColor: 'var(--color-bg-surface)',
-                            zIndex: 1
-                          }}
-                        >
-                          <div>{w.name}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                            {w.workerId || w.id} • {w.skill}
-                          </div>
-                        </td>
+                            let pill = '—';
+                            let bg = 'transparent';
+                            let color = 'var(--color-text-muted)';
 
-                        {/* Days 1..DaysInMonth */}
-                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-                          const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                          const fInfo = getFactoryDay(dateStr);
-                          const attRecord = getAttendanceForDate(w.workerId || w.id, dateStr);
-
-                          let pill = '—';
-                          let bg = 'transparent';
-                          let color = 'var(--color-text-muted)';
-
-                          if (fInfo.status === 'Closed') {
-                            pill = 'Off';
-                            bg = 'rgba(239, 68, 68, 0.1)';
-                            color = 'var(--color-status-danger-solid)';
-                          } else if (attRecord) {
-                            if (attRecord.status === 'Present') {
-                              pill = 'P';
-                              bg = 'rgba(16, 185, 129, 0.15)';
-                              color = 'var(--color-status-success-solid)';
-                              pCount++;
-                            } else if (attRecord.status === 'Half Day') {
-                              pill = 'H';
-                              bg = 'rgba(245, 158, 11, 0.15)';
-                              color = 'var(--color-status-warning-solid)';
-                              pCount += 0.5;
-                            } else if (attRecord.status === 'Absent') {
-                              pill = 'A';
-                              bg = 'rgba(239, 68, 68, 0.15)';
+                            if (fInfo.status === 'Closed') {
+                              pill = 'Off';
+                              bg = 'rgba(239, 68, 68, 0.08)';
                               color = 'var(--color-status-danger-solid)';
-                              aCount++;
-                            } else if (attRecord.status === 'On Leave') {
-                              pill = 'L';
-                              bg = 'rgba(59, 130, 246, 0.15)';
-                              color = 'var(--color-brand-primary)';
-                              lCount++;
-                            } else if (attRecord.status === 'Holiday') {
-                              pill = 'Hol';
-                              bg = 'rgba(239, 68, 68, 0.1)';
-                              color = 'var(--color-status-danger-solid)';
+                            } else if (attRecord) {
+                              if (attRecord.status === 'Present') {
+                                pill = 'P';
+                                bg = 'rgba(16, 185, 129, 0.15)';
+                                color = 'var(--color-status-success-solid)';
+                                pCount++;
+                              } else if (attRecord.status === 'Half Day') {
+                                pill = 'H';
+                                bg = 'rgba(245, 158, 11, 0.15)';
+                                color = 'var(--color-status-warning-solid)';
+                                pCount += 0.5;
+                              } else if (attRecord.status === 'Absent') {
+                                pill = 'A';
+                                bg = 'rgba(239, 68, 68, 0.15)';
+                                color = 'var(--color-status-danger-solid)';
+                                aCount++;
+                              } else if (attRecord.status === 'On Leave') {
+                                pill = 'L';
+                                bg = 'rgba(59, 130, 246, 0.15)';
+                                color = 'var(--color-brand-primary)';
+                                lCount++;
+                              }
                             }
-                          }
 
-                          return (
-                            <td
-                              key={day}
-                              style={{
-                                padding: '4px 2px',
-                                textAlign: 'center',
-                                borderRight: '1px solid var(--color-border-subtle)'
-                              }}
-                            >
-                              <span
+                            return (
+                              <td
+                                key={day}
                                 style={{
-                                  display: 'inline-block',
-                                  width: '22px',
-                                  height: '22px',
-                                  lineHeight: '22px',
-                                  fontSize: '10px',
-                                  fontWeight: 700,
-                                  borderRadius: '4px',
-                                  backgroundColor: bg,
-                                  color: color
+                                  padding: '4px 2px',
+                                  textAlign: 'center',
+                                  borderRight: '1px solid var(--color-border-subtle)'
                                 }}
                               >
-                                {pill}
-                              </span>
-                            </td>
-                          );
-                        })}
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    width: '20px',
+                                    height: '20px',
+                                    lineHeight: '20px',
+                                    fontSize: '9.5px',
+                                    fontWeight: 700,
+                                    borderRadius: '3px',
+                                    backgroundColor: bg,
+                                    color: color
+                                  }}
+                                >
+                                  {pill}
+                                </span>
+                              </td>
+                            );
+                          })}
 
-                        <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-status-success-solid)' }}>
-                          {pCount}
-                        </td>
-                        <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-status-danger-solid)' }}>
-                          {aCount}
-                        </td>
-                        <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-brand-primary)' }}>
-                          {lCount}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-status-success-solid)' }}>
+                            {pCount}
+                          </td>
+                          <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-status-danger-solid)' }}>
+                            {aCount}
+                          </td>
+                          <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700, color: 'var(--color-brand-primary)' }}>
+                            {lCount}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {/* VIEW 3: Annual Holidays Directory */}
           {viewMode === 'holidayList' && (
             <div style={{ padding: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>
-                    Factory Holidays & Shutdown Directory ({currentYear})
-                  </h3>
-                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '2px 0 0 0' }}>
-                    Standard Gujarat state holidays, festival shutdowns, and maintenance days for Jamnagar unit.
-                  </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '10px' }}>
+                <div style={{ position: 'relative', width: '280px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search declared holidays..."
+                    value={holidaySearch}
+                    onChange={e => setHolidaySearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px 6px 32px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border-subtle)',
+                      backgroundColor: 'var(--color-bg-subtle)',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '12px'
+                    }}
+                  />
                 </div>
                 <Button
                   variant="primary"
@@ -725,15 +972,12 @@ export const FactoryCalendarPage: React.FC = () => {
                 </Button>
               </div>
 
-              {holidaysForCurrentYear.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                  <AlertCircle size={28} style={{ color: 'var(--color-text-muted)', marginBottom: '8px' }} />
+              {filteredHolidays.length === 0 ? (
+                <div style={{ padding: '36px', textAlign: 'center', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <CalendarDays size={28} style={{ color: 'var(--color-text-muted)', marginBottom: '8px' }} />
                   <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                    No declared holidays for {currentYear}
+                    No declared holidays found
                   </div>
-                  <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                    Standard weekly offs will still be observed automatically.
-                  </p>
                   <Button
                     variant="primary"
                     size="sm"
@@ -741,25 +985,26 @@ export const FactoryCalendarPage: React.FC = () => {
                       setModalInitialDate(`${currentYear}-01-01`);
                       setIsScheduleModalOpen(true);
                     }}
-                    style={{ marginTop: '10px' }}
+                    style={{ marginTop: '12px' }}
                   >
-                    + Add Holiday for {currentYear}
+                    + Add Holiday
                   </Button>
                 </div>
               ) : (
                 <div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left' }}>
+                      <tr style={{ backgroundColor: 'var(--color-bg-subtle)', textAlign: 'left', borderBottom: '1px solid var(--color-border-subtle)' }}>
                         <th style={{ padding: '10px 14px', fontWeight: 600 }}>Date</th>
-                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Holiday Name</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Holiday / Event</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600 }}>Category</th>
-                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Plant Operations State</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600 }}>Plant Status</th>
                         <th style={{ padding: '10px 14px', fontWeight: 600 }}>Remarks</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 600, textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {holidaysForCurrentYear.map(h => (
+                      {filteredHolidays.map(h => (
                         <tr key={h.id || h.date} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
                           <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                             {h.date}
@@ -772,10 +1017,11 @@ export const FactoryCalendarPage: React.FC = () => {
                               style={{
                                 fontSize: '11px',
                                 fontWeight: 600,
-                                padding: '2px 6px',
+                                padding: '2px 8px',
                                 borderRadius: 'var(--radius-sm)',
                                 backgroundColor: 'var(--color-bg-subtle)',
-                                color: 'var(--color-text-secondary)'
+                                color: 'var(--color-text-secondary)',
+                                border: '1px solid var(--color-border-subtle)'
                               }}
                             >
                               {h.category}
@@ -786,17 +1032,40 @@ export const FactoryCalendarPage: React.FC = () => {
                               style={{
                                 fontSize: '11px',
                                 fontWeight: 700,
-                                padding: '3px 8px',
+                                padding: '2px 8px',
                                 borderRadius: 'var(--radius-sm)',
-                                backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                                color: 'var(--color-status-danger-solid)'
+                                backgroundColor:
+                                  h.status === 'Open'
+                                    ? 'rgba(16, 185, 129, 0.12)'
+                                    : 'rgba(239, 68, 68, 0.12)',
+                                color:
+                                  h.status === 'Open'
+                                    ? 'var(--color-status-success-solid)'
+                                    : 'var(--color-status-danger-solid)'
                               }}
                             >
-                              🔴 PLANT CLOSED
+                              {h.status === 'Open' ? 'OPEN' : 'CLOSED'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 14px', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
                             {h.notes || '—'}
+                          </td>
+                          <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              onClick={() => openScheduleForDate(h.date)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-brand-primary)',
+                                cursor: 'pointer',
+                                padding: '4px 6px',
+                                fontSize: '12px',
+                                fontWeight: 600
+                              }}
+                            >
+                              Edit
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -808,13 +1077,13 @@ export const FactoryCalendarPage: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column: Selected Day Operational Inspector Drawer */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Right Column: Day Inspector & Control Drawer */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Day Inspector Card */}
           <div className="card" style={{ padding: '18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Day Inspector
                 </span>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '2px 0 0 0', color: 'var(--color-text-primary)' }}>
@@ -829,27 +1098,28 @@ export const FactoryCalendarPage: React.FC = () => {
               <Button
                 variant="secondary"
                 size="sm"
+                icon={<Edit3 size={13} />}
                 onClick={() => openScheduleForDate(selectedDate)}
               >
                 Edit
               </Button>
             </div>
 
-            {/* Status Highlight Banner */}
+            {/* Operating Status Box */}
             <div
               style={{
-                padding: '12px',
+                padding: '12px 14px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor:
                   selectedFactoryInfo.status === 'Open'
-                    ? 'rgba(16, 185, 129, 0.1)'
-                    : 'rgba(239, 68, 68, 0.1)',
+                    ? 'rgba(16, 185, 129, 0.08)'
+                    : 'rgba(239, 68, 68, 0.08)',
                 border: `1px solid ${
                   selectedFactoryInfo.status === 'Open'
-                    ? 'rgba(16, 185, 129, 0.3)'
-                    : 'rgba(239, 68, 68, 0.3)'
+                    ? 'rgba(16, 185, 129, 0.25)'
+                    : 'rgba(239, 68, 68, 0.25)'
                 }`,
-                marginBottom: '16px'
+                marginBottom: '14px'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -860,16 +1130,20 @@ export const FactoryCalendarPage: React.FC = () => {
                     color:
                       selectedFactoryInfo.status === 'Open'
                         ? 'var(--color-status-success-solid)'
-                        : 'var(--color-status-danger-solid)'
+                        : 'var(--color-status-danger-solid)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  {selectedFactoryInfo.status === 'Open' ? '🟢 FACTORY OPEN' : '🔴 FACTORY CLOSED'}
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: selectedFactoryInfo.status === 'Open' ? '#10b981' : '#ef4444' }} />
+                  {selectedFactoryInfo.status === 'Open' ? 'Factory Open' : 'Factory Closed'}
                 </span>
                 <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                   {selectedFactoryInfo.category}
                 </span>
               </div>
-              <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '4px', color: 'var(--color-text-primary)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, marginTop: '5px', color: 'var(--color-text-primary)' }}>
                 {selectedFactoryInfo.title}
               </div>
               {selectedFactoryInfo.notes && (
@@ -889,7 +1163,8 @@ export const FactoryCalendarPage: React.FC = () => {
                 marginBottom: '14px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                border: '1px solid var(--color-border-subtle)'
               }}
             >
               <Clock size={15} style={{ color: 'var(--color-brand-primary)' }} />
@@ -898,16 +1173,16 @@ export const FactoryCalendarPage: React.FC = () => {
                   {selectedFactoryInfo.shiftTimings || config.standardShiftTimings}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                  {selectedFactoryInfo.status === 'Open' ? 'Machining & Assembly Operating' : 'Floor Power & Operations Off'}
+                  {selectedFactoryInfo.status === 'Open' ? 'Machining & Assembly Active' : 'Plant Suspended'}
                 </div>
               </div>
             </div>
 
-            {/* Workforce Attendance Breakdown on Selected Date */}
+            {/* Workforce Attendance Breakdown */}
             <div style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                  Workforce Attendance
+                  Attendance Summary
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                   {selectedDaySummary.totalWorkers} Active
@@ -915,29 +1190,29 @@ export const FactoryCalendarPage: React.FC = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
-                <div style={{ padding: '8px 4px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 2px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-subtle)' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-status-success-solid)' }}>
                     {selectedDaySummary.present}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Present</div>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Present</div>
                 </div>
-                <div style={{ padding: '8px 4px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 2px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-subtle)' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-status-warning-solid)' }}>
                     {selectedDaySummary.halfDay}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Half Day</div>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Half Day</div>
                 </div>
-                <div style={{ padding: '8px 4px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 2px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-subtle)' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-status-danger-solid)' }}>
                     {selectedDaySummary.absent}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Absent</div>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Absent</div>
                 </div>
-                <div style={{ padding: '8px 4px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ padding: '8px 2px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border-subtle)' }}>
                   <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-brand-primary)' }}>
                     {selectedDaySummary.onLeave}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>Leave</div>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Leave</div>
                 </div>
               </div>
             </div>
@@ -949,20 +1224,33 @@ export const FactoryCalendarPage: React.FC = () => {
               icon={<ExternalLink size={14} />}
               onClick={() => navigate(`/attendance/day/${selectedDate}`)}
             >
-              Open {selectedDate} Attendance Sheet
+              Open Daily Attendance Sheet
             </Button>
           </div>
 
-          {/* Quick Legend Info Card */}
-          <div className="card" style={{ padding: '14px', fontSize: '12px' }}>
+          {/* Quick Legend Card */}
+          <div className="card" style={{ padding: '14px 16px', fontSize: '12px' }}>
             <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
-              Factory Calendar Rules
+              Calendar Legend
             </div>
-            <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <li><strong>Weekly Off:</strong> Standard {config.weeklyOffTitle || 'Friday Weekly Factory Off'}.</li>
-              <li><strong>Special Working Day:</strong> Can be declared to run production on weekly offs or holidays.</li>
-              <li><strong>Holidays:</strong> Auto-updates daily workforce sheets and payroll calculations.</li>
-            </ul>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--color-text-secondary)', fontSize: '11.5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
+                <span><strong>Factory Open:</strong> Standard shift active</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                <span><strong>Holiday:</strong> Declared festival / public holiday</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+                <span><strong>Weekly Off:</strong> Standard plant rest day ({config.weeklyOffTitle || 'Friday'})</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }} />
+                <span><strong>Special Shift:</strong> Manual production override</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
