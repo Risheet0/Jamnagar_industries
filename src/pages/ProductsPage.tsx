@@ -5,17 +5,15 @@ import { DataTable } from '../components/common/DataTable';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { DrawingViewerModal } from '../components/common/DrawingViewerModal';
-import { Component3DViewerModal } from '../components/common/Component3DViewerModal';
 import { useNavigation } from '../context/NavigationContext';
 import { useProducts } from '../context/ProductsContext';
 import { Product, TableColumn } from '../types';
-import { Plus, Eye, FileCode, Cpu, Layers, Sparkles } from 'lucide-react';
+import { Plus, Eye, FileCode, Cpu, Layers, Package } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
   const { products } = useProducts();
   const [selectedDrawingProduct, setSelectedDrawingProduct] = useState<Product | null>(null);
-  const [selected3DProduct, setSelected3DProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   const filteredProducts = categoryFilter === 'ALL'
@@ -131,13 +129,13 @@ export const ProductsPage: React.FC = () => {
         }
       />
 
-      {/* 3D Component Summary Cards */}
+      {/* Component Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
         <SummaryCard
           title="Master Components"
           value={`${products.length} Models`}
           subtitle="Active production CNC parts"
-          image3d="/assets/3d/brass_fitting_3d.jpg"
+          icon={<Package size={18} />}
           onClick={() => setCategoryFilter('ALL')}
         />
         <SummaryCard
@@ -191,18 +189,6 @@ export const ProductsPage: React.FC = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setSelected3DProduct(row);
-              }}
-              className="btn btn-ghost btn-sm"
-              style={{ color: '#0284c7', padding: '3px 8px', fontSize: '11px', fontWeight: 600, gap: '4px', background: 'rgba(2, 132, 199, 0.08)', borderRadius: '6px' }}
-              title="Launch 3D Hologram Inspector"
-            >
-              <Sparkles size={13} />
-              <span>3D Inspect</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
                 setSelectedDrawingProduct(row);
               }}
               className="btn btn-ghost btn-sm btn-icon-only"
@@ -225,15 +211,6 @@ export const ProductsPage: React.FC = () => {
         onAddClick={() => openQuickAdd('product')}
         addLabel="Add Product"
       />
-
-      {/* 3D Component Hologram Inspector Modal */}
-      {selected3DProduct && (
-        <Component3DViewerModal
-          isOpen={Boolean(selected3DProduct)}
-          onClose={() => setSelected3DProduct(null)}
-          product={selected3DProduct}
-        />
-      )}
 
       {/* Engineering Drawing Viewer Modal */}
       {selectedDrawingProduct && (

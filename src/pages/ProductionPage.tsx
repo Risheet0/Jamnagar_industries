@@ -181,16 +181,12 @@ export const ProductionPage: React.FC = () => {
           value={activeJobs.length}
           subtitle={`${delayedJobs.length > 0 ? `${delayedJobs.length} delayed` : 'All stations on schedule'}`}
           icon={<Factory size={18} />}
-          image3d="/assets/3d/cnc_machine_3d.jpg"
-          image3dAlt="CNC Machining Station"
         />
         <SummaryCard
           title="Total Target Output"
           value={`${totalRequired.toLocaleString('en-IN')} pcs`}
           subtitle="Scheduled batch quantity"
           icon={<Layers size={18} />}
-          image3d="/assets/3d/brass_fitting_3d.jpg"
-          image3dAlt="Batch Output"
         />
         <SummaryCard
           title="Completed Output"

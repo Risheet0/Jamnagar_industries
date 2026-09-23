@@ -381,8 +381,6 @@ export const QualityPage: React.FC = () => {
           value={totalInspections}
           subtitle="Total batches verified"
           icon={<ShieldCheck size={18} />}
-          image3d="/assets/3d/quality_gauge_3d.jpg"
-          image3dAlt="Laser QC Micrometer Gauge"
         />
         <SummaryCard
           title="First-Pass Quality Yield"

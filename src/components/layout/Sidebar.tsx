@@ -338,7 +338,7 @@ export const Sidebar: React.FC = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span className="live-dot pulse" style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }} />
-              <span style={{ fontWeight: 600, color: '#f8fafc' }}>3D Twin Active</span>
+              <span style={{ fontWeight: 600, color: '#f8fafc' }}>System Online</span>
             </div>
             <span style={{ color: '#38bdf8', fontWeight: 600, fontSize: '10px' }}>v2.4 PRO</span>
           </div>

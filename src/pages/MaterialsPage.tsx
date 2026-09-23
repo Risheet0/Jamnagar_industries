@@ -7,7 +7,7 @@ import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useMaterials } from '../context/MaterialsContext';
 import { Material, TableColumn } from '../types';
-import { PackagePlus, ArrowDownLeft, ArrowUpRight, Eye, AlertTriangle, Boxes } from 'lucide-react';
+import { PackagePlus, ArrowDownLeft, ArrowUpRight, Eye, AlertTriangle, Boxes, Layers } from 'lucide-react';
 
 export const MaterialsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
@@ -147,13 +147,13 @@ export const MaterialsPage: React.FC = () => {
         }
       />
 
-      {/* 3D Material Stock Summary Cards */}
+      {/* Material Stock Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
         <SummaryCard
           title="Total Raw Materials"
           value={`${materials.length} Items`}
           subtitle="Master brass, copper & steel stock"
-          image3d="/assets/3d/warehouse_racks_3d.jpg"
+          icon={<Boxes size={18} />}
           onClick={() => setActiveTab('all')}
         />
         <SummaryCard
@@ -168,7 +168,7 @@ export const MaterialsPage: React.FC = () => {
           title="Brass Raw Stock"
           value={`${materials.filter(m => m.type.includes('Brass')).length} Grades`}
           subtitle="CW614N, IS 319 Free Cutting"
-          image3d="/assets/3d/brass_fitting_3d.jpg"
+          icon={<Layers size={18} />}
           onClick={() => setActiveTab('brass')}
         />
         <SummaryCard

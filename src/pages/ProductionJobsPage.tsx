@@ -6,7 +6,7 @@ import { Button } from '../components/common/Button';
 import { useNavigation } from '../context/NavigationContext';
 import { useProduction } from '../context/ProductionContext';
 import { ProductionJob, TableColumn } from '../types';
-import { PlusCircle, ArrowLeft, Eye } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Eye, Factory } from 'lucide-react';
 
 export const ProductionJobsPage: React.FC = () => {
   const { navigate, openQuickAdd } = useNavigation();
@@ -147,34 +147,35 @@ export const ProductionJobsPage: React.FC = () => {
         }
       />
 
-      {/* ── 3D Visual Banner & Glass Status Summary Bar ── */}
+      {/* Status Summary Bar */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 244, 250, 0.85))',
-        border: '1px solid rgba(226, 232, 240, 0.8)',
-        borderRadius: '16px',
-        padding: '16px 20px',
+        background: 'var(--color-bg-surface-solid)',
+        border: '1px solid var(--color-border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '14px 18px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '20px',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
-        backdropFilter: 'blur(16px)',
+        gap: '16px',
+        boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <img
-            src="/assets/3d/cnc_machine_3d.jpg"
-            alt="CNC Shop Floor Work Orders"
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '12px',
-              objectFit: 'cover',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
-              border: '2px solid rgba(255,255,255,0.9)',
-            }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '8px',
+            backgroundColor: 'var(--color-bg-subtle)',
+            color: 'var(--color-brand-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid var(--color-border-subtle)',
+            flexShrink: 0
+          }}>
+            <Factory size={22} />
+          </div>
           <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
               Real-time Production Job Schedule
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>

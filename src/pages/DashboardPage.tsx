@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCard } from '../components/common/SummaryCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
-import { DigitalTwinShopFloor } from '../components/common/DigitalTwinShopFloor';
 import { useNavigation } from '../context/NavigationContext';
 import { useWorkers } from '../context/WorkerContext';
 import { useAttendance, getTodayDateString } from '../context/AttendanceContext';
@@ -23,8 +22,8 @@ import {
   ArrowDownLeft,
   ShieldAlert,
   CheckCircle2,
-  Layers,
-  Sparkles
+  PackageCheck,
+  TrendingUp
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -36,8 +35,6 @@ export const DashboardPage: React.FC = () => {
   const { jobs } = useProduction();
   const { inspections } = useQuality();
   const { companyProfile } = useCompany();
-
-  const [dashboardMode, setDashboardMode] = useState<'3d-twin' | 'overview'>('3d-twin');
 
   const todayStr = getTodayDateString();
   const totalWorkers = workers.length;
@@ -86,27 +83,9 @@ export const DashboardPage: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         title="Plant Operations Dashboard"
-        description={`${companyProfile.name} • ${companyProfile.location} • 3D Digital Twin Command Center`}
+        description={`${companyProfile.name} • ${companyProfile.location} • Operations Command Center`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* View Mode Toggle (3D Digital Twin vs Analytics Grid) */}
-            <div className="glass-pill-nav">
-              <button
-                className={`glass-pill-tab ${dashboardMode === '3d-twin' ? 'active' : ''}`}
-                onClick={() => setDashboardMode('3d-twin')}
-              >
-                <Sparkles size={13} />
-                <span>3D Digital Twin</span>
-              </button>
-              <button
-                className={`glass-pill-tab ${dashboardMode === 'overview' ? 'active' : ''}`}
-                onClick={() => setDashboardMode('overview')}
-              >
-                <Layers size={13} />
-                <span>Operations Grid</span>
-              </button>
-            </div>
-
             <Button
               variant="secondary"
               icon={<ArrowDownLeft size={14} />}
@@ -124,9 +103,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         }
       />
-
-      {/* ── 3D Digital Twin Shop Floor Component ── */}
-      {dashboardMode === '3d-twin' && <DigitalTwinShopFloor />}
 
       {/* Operational Shift Status Banner */}
       <div
@@ -173,7 +149,6 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
-
 
       {/* ── Today's Attendance Summary Widget ── */}
       <div className="card" style={{ padding: '16px 20px' }}>
@@ -333,7 +308,7 @@ export const DashboardPage: React.FC = () => {
             title="Total Active Workforce"
             value={`${activeWorkers}`}
             subtitle={`${totalWorkers} total roster (${onLeaveWorkers} leave, ${inactiveWorkers} inactive)`}
-            image3d="/assets/3d/worker_operator_3d.jpg"
+            icon={<Users size={18} />}
             trend={{ value: `${totalWorkers > 0 ? Math.round((activeWorkers / totalWorkers) * 100) : 100}%`, isPositive: true, label: 'employed' }}
             onClick={() => navigate('/workers')}
           />
@@ -342,7 +317,7 @@ export const DashboardPage: React.FC = () => {
             title="Active Production Jobs"
             value={activeJobs.length}
             subtitle={`${completedJobs.length} batches completed`}
-            image3d="/assets/3d/cnc_machine_3d.jpg"
+            icon={<Factory size={18} />}
             onClick={() => navigate('/production/jobs')}
           />
 
@@ -350,7 +325,7 @@ export const DashboardPage: React.FC = () => {
             title="Raw Material Items"
             value={totalMaterials}
             subtitle="Brass, Copper, SS & MS master stock"
-            image3d="/assets/3d/warehouse_racks_3d.jpg"
+            icon={<Boxes size={18} />}
             onClick={() => navigate('/materials')}
           />
 
@@ -358,7 +333,7 @@ export const DashboardPage: React.FC = () => {
             title="Manufactured Catalogue"
             value={products.length}
             subtitle="Precision turned brass parts"
-            image3d="/assets/3d/brass_fitting_3d.jpg"
+            icon={<PackageCheck size={18} />}
             onClick={() => navigate('/products')}
           />
 
@@ -366,7 +341,7 @@ export const DashboardPage: React.FC = () => {
             title="On-Time Delivery (OTD)"
             value={`${otdPercent}%`}
             subtitle="Batch dispatch reliability rate"
-            image3d="/assets/3d/quality_gauge_3d.jpg"
+            icon={<TrendingUp size={18} />}
             statusTag={otdPercent >= 90 ? { label: 'Optimal', variant: 'success' } : { label: 'Attention', variant: 'warning' }}
             onClick={() => navigate('/reports')}
           />
@@ -491,7 +466,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
-
 
       {/* Two Columns: Active Production Floor & Low Stock / Urgent Alerts */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
