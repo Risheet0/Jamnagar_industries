@@ -168,34 +168,112 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return initialMockLeaves;
   });
 
+const DELETED_ATTENDANCE_STORAGE_KEY = 'jamnagar_erp_deleted_attendance_v1';
+
+function getDeletedAttendanceKeys(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_ATTENDANCE_STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+function addDeletedAttendanceKey(key: string) {
+  try {
+    const set = getDeletedAttendanceKeys();
+    set.add(key);
+    localStorage.setItem(DELETED_ATTENDANCE_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
+function removeDeletedAttendanceKey(key: string) {
+  try {
+    const set = getDeletedAttendanceKeys();
+    if (set.has(key)) {
+      set.delete(key);
+      localStorage.setItem(DELETED_ATTENDANCE_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch {}
+}
+
   const fetchAttendanceAndLeaves = useCallback(async () => {
     try {
       const [attRes, leavesRes] = await Promise.all([
-        fetch(apiUrl('/api/attendance/all'), { credentials: 'include' }),
-        fetch(apiUrl('/api/leaves'), { credentials: 'include' })
+        fetch(apiUrl('/api/attendance/all'), { credentials: 'include' }).catch(() => null),
+        fetch(apiUrl('/api/leaves'), { credentials: 'include' }).catch(() => null)
       ]);
 
-      if (attRes.ok) {
+      if (attRes && attRes.ok) {
         const attData = await attRes.json();
         if (Array.isArray(attData)) {
-          setRecords(attData);
-          try {
-            localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attData));
-          } catch {}
+          const deletedKeys = getDeletedAttendanceKeys();
+          setRecords(prev => {
+            const recordMap = new Map<string, AttendanceRecord>();
+
+            // 1. First add all valid backend records (ignoring any explicitly deleted locally)
+            attData.forEach((rec: AttendanceRecord) => {
+              const key = `${rec.workerId}_${rec.date}`;
+              if (!deletedKeys.has(key)) {
+                recordMap.set(key, rec);
+              }
+            });
+
+            // 2. Merge local records if backend doesn't have them yet (e.g. backend offline/restarted)
+            const unsynced: AttendanceRecord[] = [];
+            prev.forEach((localRec: AttendanceRecord) => {
+              const key = `${localRec.workerId}_${localRec.date}`;
+              if (!deletedKeys.has(key) && !recordMap.has(key)) {
+                recordMap.set(key, localRec);
+                unsynced.push(localRec);
+              }
+            });
+
+            const merged = Array.from(recordMap.values());
+            try {
+              localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(merged));
+            } catch {}
+
+            // Background sync any locally saved records that backend is missing
+            if (unsynced.length > 0) {
+              unsynced.forEach(rec => {
+                fetch(apiUrl('/api/attendance/mark'), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                  body: JSON.stringify(rec)
+                }).catch(() => {});
+              });
+            }
+
+            return merged;
+          });
         }
       }
 
-      if (leavesRes.ok) {
+      if (leavesRes && leavesRes.ok) {
         const leavesData = await leavesRes.json();
         if (Array.isArray(leavesData)) {
-          setLeaveRecords(leavesData);
-          try {
-            localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leavesData));
-          } catch {}
+          setLeaveRecords(prev => {
+            const leaveMap = new Map<string, LeaveRecord>();
+            leavesData.forEach((l: LeaveRecord) => leaveMap.set(l.id, l));
+            prev.forEach((l: LeaveRecord) => {
+              if (!leaveMap.has(l.id)) {
+                leaveMap.set(l.id, l);
+              }
+            });
+            const merged = Array.from(leaveMap.values());
+            try {
+              localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
       }
     } catch {
-      // fallback
+      // fallback to local data
     }
   }, []);
 
@@ -230,6 +308,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         notes: meta?.notes,
         leaveRecordId: meta?.leaveRecordId
       };
+
+      // Unmark from deleted list
+      removeDeletedAttendanceKey(`${workerId}_${date}`);
 
       setRecords(prev => {
         const index = prev.findIndex(r => r.workerId === workerId && r.date === date);
@@ -275,6 +356,10 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const defaultCheckIn = status === 'Present' || status === 'Half Day' ? '08:15' : undefined;
       const defaultCheckOut = status === 'Present' ? '20:00' : status === 'Half Day' ? '14:00' : undefined;
 
+      workerIds.forEach(wId => {
+        removeDeletedAttendanceKey(`${wId}_${date}`);
+      });
+
       setRecords(prev => {
         const updated = [...prev];
         workerIds.forEach(wId => {
@@ -314,6 +399,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 
   const deleteAttendanceRecord = useCallback((workerId: string, date: string) => {
+    addDeletedAttendanceKey(`${workerId}_${date}`);
+
     setRecords(prev => {
       const next = prev.filter(r => !(r.workerId === workerId && r.date === date));
       try {
